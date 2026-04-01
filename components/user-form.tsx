@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileDropzone } from "@/components/file-dropzone"
 import { toast } from "sonner"
-import { addMockUser, addMockFile } from "@/lib/mock-data"
 import type { GeneratedCredentials, User } from "@/lib/types"
 
 const userFormSchema = z.object({
@@ -25,14 +24,14 @@ interface UserFormProps {
   onUserCreated?: (user: User) => void
 }
 
-// Funcion para generar username
+// Generar username
 function generateUsername(nombre: string, apellido: string): string {
   const cleanNombre = nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   const cleanApellido = apellido.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   return `${cleanNombre.charAt(0)}${cleanApellido}`.replace(/\s/g, "")
 }
 
-// Funcion para generar password
+// Generar password
 function generatePassword(): string {
   const chars = "abcdefghijkmnpqrstuvwxyz23456789"
   let password = ""
@@ -61,7 +60,7 @@ export function UserForm({ onUserCreated }: UserFormProps) {
 
   const generateCredentials = async () => {
     const values = form.getValues()
-    
+
     if (!values.nombre || !values.apellido || !values.dni) {
       toast.error("Completa nombre, apellido y DNI primero")
       return
@@ -75,11 +74,10 @@ export function UserForm({ onUserCreated }: UserFormProps) {
 
     setIsGenerating(true)
 
-    // Simulamos delay de API
     setTimeout(() => {
       const username = generateUsername(values.nombre, values.apellido)
       const password = generatePassword()
-      
+
       setCredentials({
         nombreApellido: `${values.nombre} ${values.apellido}`,
         username,
@@ -99,50 +97,38 @@ export function UserForm({ onUserCreated }: UserFormProps) {
     setIsSubmitting(true)
 
     try {
-      // Crear usuario en mock data
-      const newUser = addMockUser({
-        nombre: values.nombre,
-        apellido: values.apellido,
-        dni: values.dni,
-        username: credentials.username,
-        password: credentials.password
+      // 🔥 AHORA VA A LA API REAL
+      const res = await fetch("/api/pacientes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          nombre: values.nombre,
+          apellido: values.apellido,
+          dni: values.dni
+        })
       })
 
-      // Agregar estudios
-      for (const file of estudios) {
-        addMockFile({
-          nombre: file.name,
-          tipo: "ESTUDIO",
-          url: `/mock/${file.name}`,
-          size: file.size,
-          mimeType: file.type,
-          userId: newUser.id
-        })
+      if (!res.ok) {
+        throw new Error("Error al crear paciente")
       }
 
-      // Agregar informes
-      for (const file of informes) {
-        addMockFile({
-          nombre: file.name,
-          tipo: "INFORME",
-          url: `/mock/${file.name}`,
-          size: file.size,
-          mimeType: file.type,
-          userId: newUser.id
-        })
-      }
+      const newUser = await res.json()
 
-      toast.success("Usuario creado exitosamente")
-      
-      // Reset form
+      toast.success("Paciente creado exitosamente")
+
+      // Reset
       form.reset()
       setCredentials(null)
       setEstudios([])
       setInformes([])
-      
+
       onUserCreated?.(newUser)
-    } catch {
-      toast.error("Error al crear usuario")
+
+    } catch (error) {
+      console.error(error)
+      toast.error("Error al crear paciente")
     } finally {
       setIsSubmitting(false)
     }
@@ -158,63 +144,25 @@ export function UserForm({ onUserCreated }: UserFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label htmlFor="nombre" className="text-sm font-medium">
-                Nombre
-              </label>
-              <Input
-                id="nombre"
-                placeholder="Juan"
-                {...form.register("nombre")}
-              />
-              {form.formState.errors.nombre && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.nombre.message}
-                </p>
-              )}
+              <label className="text-sm font-medium">Nombre</label>
+              <Input placeholder="Juan" {...form.register("nombre")} />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="apellido" className="text-sm font-medium">
-                Apellido
-              </label>
-              <Input
-                id="apellido"
-                placeholder="Perez"
-                {...form.register("apellido")}
-              />
-              {form.formState.errors.apellido && (
-                <p className="text-sm text-destructive">
-                  {form.formState.errors.apellido.message}
-                </p>
-              )}
+              <label className="text-sm font-medium">Apellido</label>
+              <Input placeholder="Perez" {...form.register("apellido")} />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="dni" className="text-sm font-medium">
-              DNI
-            </label>
-            <Input
-              id="dni"
-              placeholder="12345678"
-              {...form.register("dni")}
-            />
-            {form.formState.errors.dni && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.dni.message}
-              </p>
-            )}
+            <label className="text-sm font-medium">DNI</label>
+            <Input placeholder="12345678" {...form.register("dni")} />
           </div>
 
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={generateCredentials}
-            disabled={isGenerating}
-            className="w-full"
-          >
+          <Button type="button" onClick={generateCredentials} className="w-full">
             {isGenerating ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -225,67 +173,35 @@ export function UserForm({ onUserCreated }: UserFormProps) {
 
           {credentials && (
             <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nombre y Apellido</label>
-                <Input value={credentials.nombreApellido} readOnly />
-              </div>
+              <Input value={credentials.nombreApellido} readOnly />
+              <Input value={credentials.username} readOnly />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Usuario</label>
-                <Input value={credentials.username} readOnly />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Contraseña</label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    value={credentials.password}
-                    readOnly
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                    <span className="sr-only">
-                      {showPassword ? "Ocultar" : "Mostrar"} contraseña
-                    </span>
-                  </Button>
-                </div>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={credentials.password}
+                  readOnly
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff /> : <Eye />}
+                </Button>
               </div>
             </div>
           )}
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <FileDropzone
-              label="Subir Estudios"
-              onFilesChange={setEstudios}
-              disabled={!credentials}
-            />
-            <FileDropzone
-              label="Subir Informes"
-              onFilesChange={setInformes}
-              disabled={!credentials}
-            />
+            <FileDropzone label="Estudios" onFilesChange={setEstudios} />
+            <FileDropzone label="Informes" onFilesChange={setInformes} />
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={!credentials || isSubmitting}
-          >
-            {isSubmitting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Crear Paciente
           </Button>
         </form>
