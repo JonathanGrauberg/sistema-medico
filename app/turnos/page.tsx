@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { TurnoForm } from "@/components/turno-form"
 import { AgendaDia } from "@/components/agenda-dia"
+import { AgendaMedicos } from "@/components/agenda-medicos"
 
 export default function TurnosPage() {
   const [turnos, setTurnos] = useState<any[]>([])
@@ -23,7 +24,7 @@ export default function TurnosPage() {
           .then(setTurnos)
       }} />
 
-      <AgendaDia />
+      <AgendaMedicos />
 
       {turnos.length === 0 ? (
         <p>No hay turnos</p>
