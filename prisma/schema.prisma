@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  nombre    String
+  apellido  String
+  dni       String   @unique
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  files     File[]
+
+  @@index([dni])
+  @@index([username])
+  @@index([nombre, apellido])
+}
+
+model File {
+  id        String   @id @default(cuid())
+  nombre    String
+  tipo      FileType
+  url       String
+  size      Int
+  mimeType  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([tipo])
+}
+
+enum FileType {
+  ESTUDIO
+  INFORME
+}
