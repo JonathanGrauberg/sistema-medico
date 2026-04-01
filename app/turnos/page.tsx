@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { TurnoForm } from "@/components/turno-form"
 
 export default function TurnosPage() {
   const [turnos, setTurnos] = useState<any[]>([])
@@ -14,6 +15,12 @@ export default function TurnosPage() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Turnos</h1>
+
+      <TurnoForm onCreated={() => {
+        fetch("/api/turnos")
+          .then(res => res.json())
+          .then(setTurnos)
+      }} />
 
       {turnos.length === 0 ? (
         <p>No hay turnos</p>
