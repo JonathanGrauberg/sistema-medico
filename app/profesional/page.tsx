@@ -1,24 +1,31 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Search, Plus, Users } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { UserDetails } from "@/components/user-details"
 import { UserForm } from "@/components/user-form"
 import { Navbar } from "@/components/navbar"
 import { Toaster } from "@/components/ui/sonner"
-import { mockState } from "@/lib/mock-data"
 import type { User } from "@/lib/types"
 
 export default function ProfesionalPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [activeTab, setActiveTab] = useState("pacientes")
   const [searchQuery, setSearchQuery] = useState("")
-  const [users, setUsers] = useState<User[]>(mockState.users)
+  const [users, setUsers] = useState<User[]>([])
 
+  // 🔥 TRAER PACIENTES REALES
+  useEffect(() => {
+    fetch("/api/pacientes")
+      .then(res => res.json())
+      .then(data => setUsers(data))
+      .catch(err => console.error("Error cargando pacientes:", err))
+  }, [])
+
+  // 🔥 CUANDO SE CREA UN PACIENTE
   const handleUserCreated = (newUser: User) => {
     setUsers(prev => [...prev, newUser])
     setActiveTab("pacientes")
@@ -44,8 +51,7 @@ export default function ProfesionalPage() {
     return (
       user.nombre.toLowerCase().includes(query) ||
       user.apellido.toLowerCase().includes(query) ||
-      user.dni.includes(query) ||
-      user.username.toLowerCase().includes(query)
+      user.dni.includes(query)
     )
   })
 
@@ -60,7 +66,7 @@ export default function ProfesionalPage() {
             Panel Profesional
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Administra pacientes, archivos medicos e historias clinicas
+            Administra pacientes, archivos médicos e historias clínicas
           </p>
         </header>
 
@@ -91,11 +97,12 @@ export default function ProfesionalPage() {
                     {users.length} paciente{users.length !== 1 ? "s" : ""} registrado{users.length !== 1 ? "s" : ""}
                   </CardDescription>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar por nombre, DNI o usuario..."
+                      placeholder="Buscar por nombre o DNI..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-9"
@@ -122,7 +129,7 @@ export default function ProfesionalPage() {
                               {user.nombre} {user.apellido}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              DNI: {user.dni} | @{user.username}
+                              DNI: {user.dni}
                             </p>
                           </div>
                           <div className="text-sm text-muted-foreground">

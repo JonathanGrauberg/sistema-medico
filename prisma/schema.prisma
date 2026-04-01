@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,39 +7,191 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+//////////////////////////////////////////////////////
+// 🏥 TENANT (CLÍNICAS)
+//////////////////////////////////////////////////////
+
+model Tenant {
   id        String   @id @default(cuid())
   nombre    String
+  createdAt DateTime @default(now())
+
+  users     User[]
+  pacientes Paciente[]
+  turnos    Turno[]
+  preparaciones Preparacion[]
+}
+
+//////////////////////////////////////////////////////
+// 👤 USUARIOS DEL SISTEMA (MEDICO / ADMIN / SECRETARIA)
+//////////////////////////////////////////////////////
+
+model User {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  nombre    String
   apellido  String
-  dni       String   @unique
-  username  String   @unique
+  email     String   @unique
   password  String
+  rol       Role
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  files     File[]
 
-  @@index([dni])
-  @@index([username])
+  turnos        Turno[]
+  historias     HistoriaClinica[]
+
+  @@index([tenantId])
+}
+
+//////////////////////////////////////////////////////
+// 🧑 PACIENTES
+//////////////////////////////////////////////////////
+
+model Paciente {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  nombre    String
+  apellido  String
+  dni       String
+  telefono  String?
+  email     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  archivos  Archivo[]
+  historias HistoriaClinica[]
+  turnos    Turno[]
+  credenciales Credencial[]
+
+  @@unique([tenantId, dni]) // 🔥 DNI único por clínica
   @@index([nombre, apellido])
 }
 
-model File {
-  id        String   @id @default(cuid())
-  nombre    String
-  tipo      FileType
-  url       String
-  size      Int
-  mimeType  String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+//////////////////////////////////////////////////////
+// 📎 ARCHIVOS (ESTUDIOS / INFORMES)
+//////////////////////////////////////////////////////
 
-  @@index([userId])
+model Archivo {
+  id          String   @id @default(cuid())
+  pacienteId  String
+  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  nombre      String
+  tipo        FileType
+  url         String
+  size        Int
+  mimeType    String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([pacienteId])
   @@index([tipo])
+}
+
+//////////////////////////////////////////////////////
+// 🩺 HISTORIA CLÍNICA
+//////////////////////////////////////////////////////
+
+model HistoriaClinica {
+  id          String   @id @default(cuid())
+  pacienteId  String
+  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  medicoId    String
+  medico      User     @relation(fields: [medicoId], references: [id])
+
+  contenido   String
+  fecha       DateTime @default(now())
+
+  @@index([pacienteId])
+  @@index([medicoId])
+}
+
+//////////////////////////////////////////////////////
+// 📅 TURNOS (CORE DEL SISTEMA)
+//////////////////////////////////////////////////////
+
+model Turno {
+  id          String   @id @default(cuid())
+
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  pacienteId  String
+  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  medicoId    String
+  medico      User     @relation(fields: [medicoId], references: [id])
+
+  fecha       DateTime
+  estado      TurnoEstado
+
+  notasSecretaria String?
+  notasMedico     String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([medicoId, fecha])
+  @@index([pacienteId])
+}
+
+//////////////////////////////////////////////////////
+// 🧾 PREPARACIONES (INDICACIONES PRE-ESTUDIO)
+//////////////////////////////////////////////////////
+
+model Preparacion {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  nombre    String
+  contenido String
+
+  @@index([tenantId])
+}
+
+//////////////////////////////////////////////////////
+// 🖨️ CREDENCIALES / ETIQUETAS
+//////////////////////////////////////////////////////
+
+model Credencial {
+  id          String   @id @default(cuid())
+  pacienteId  String
+  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+
+  codigo      String   @unique
+  createdAt   DateTime @default(now())
+
+  @@index([pacienteId])
+}
+
+//////////////////////////////////////////////////////
+// 🧠 ENUMS
+//////////////////////////////////////////////////////
+
+enum Role {
+  ADMIN
+  MEDICO
+  SECRETARIA
 }
 
 enum FileType {
   ESTUDIO
   INFORME
+}
+
+enum TurnoEstado {
+  PENDIENTE
+  CONFIRMADO
+  EN_SALA
+  ATENDIDO
+  CANCELADO
 }
