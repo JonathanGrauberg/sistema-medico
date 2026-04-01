@@ -51,44 +51,49 @@ export function TurnoForm({ onCreated }: { onCreated?: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 border p-4 rounded-lg">
-      <h2 className="font-bold">Nuevo Turno</h2>
+  <div className="mt-6">
+    <div className="rounded-lg border bg-card p-6 shadow-sm space-y-4">
+      <h2 className="text-lg font-semibold">Nuevo Turno</h2>
 
-      <select
-        value={pacienteId}
-        onChange={(e) => setPacienteId(e.target.value)}
-        className="w-full border p-2 rounded"
-      >
-        <option value="">Seleccionar paciente</option>
-        {pacientes.map(p => (
-          <option key={p.id} value={p.id}>
-            {p.nombre} {p.apellido}
-          </option>
-        ))}
-      </select>
+      <form onSubmit={handleSubmit} className="space-y-4">
 
-      <select
-        value={medicoId}
-        onChange={(e) => setMedicoId(e.target.value)}
-        className="w-full border p-2 rounded"
-      >
-        <option value="">Seleccionar médico</option>
-        {medicos.map(m => (
-          <option key={m.id} value={m.id}>
-            {m.nombre} {m.apellido}
-          </option>
-        ))}
-      </select>
+        <select
+          value={pacienteId}
+          onChange={(e) => setPacienteId(e.target.value)}
+          className="w-full rounded-md border p-2 bg-background"
+        >
+          <option value="">Seleccionar paciente</option>
+          {pacientes.map(p => (
+            <option key={p.id} value={p.id}>
+              {p.nombre} {p.apellido}
+            </option>
+          ))}
+        </select>
 
-      <Input
-        type="datetime-local"
-        value={fecha}
-        onChange={(e) => setFecha(e.target.value)}
-      />
+        <select
+          value={medicoId}
+          onChange={(e) => setMedicoId(e.target.value)}
+          className="w-full rounded-md border p-2 bg-background"
+        >
+          <option value="">Seleccionar médico</option>
+          {medicos.map(m => (
+            <option key={m.id} value={m.id}>
+              {m.nombre} {m.apellido}
+            </option>
+          ))}
+        </select>
 
-      <Button type="submit" className="w-full">
-        Crear Turno
-      </Button>
-    </form>
-  )
+        <Input
+          type="datetime-local"
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+        />
+
+        <Button type="submit" className="w-full">
+          Crear Turno
+        </Button>
+      </form>
+    </div>
+  </div>
+)
 }
