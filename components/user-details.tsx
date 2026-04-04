@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowLeft, Trash2, Loader2, Upload, User, Stethoscope } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,7 +20,7 @@ import { FileTable } from "@/components/file-table"
 import { FileDropzone } from "@/components/file-dropzone"
 import { HistoriaClinicaView } from "@/components/historia-clinica-form"
 import { toast } from "sonner"
-import { getMockFilesByUserId, getMockHistoriaByUserId, addMockFile } from "@/lib/mock-data"
+import { getMockHistoriaByUserId } from "@/lib/mock-data"
 import type { User as UserType, FileRecord, HistoriaClinicaEntry } from "@/lib/types"
 
 interface UserDetailsProps {
@@ -30,7 +30,7 @@ interface UserDetailsProps {
 }
 
 export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
-  const [files, setFiles] = useState<FileRecord[]>(getMockFilesByUserId(user.id))
+  const [files, setFiles] = useState<FileRecord[]>([])
   const [historiaEntries, setHistoriaEntries] = useState<HistoriaClinicaEntry[]>(
     getMockHistoriaByUserId(user.id)?.entries || []
   )
@@ -39,18 +39,47 @@ export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
   const [newEstudios, setNewEstudios] = useState<File[]>([])
   const [newInformes, setNewInformes] = useState<File[]>([])
 
+  // 🔥 traer archivos reales del backend
+  const fetchFiles = async () => {
+    try {
+      const res = await fetch(`/api/paciente/${user.id}`)
+      const data = await res.json()
+      setFiles(data.archivos || [])
+    } catch {
+      toast.error("Error cargando archivos")
+    }
+  }
+
+  useEffect(() => {
+    fetchFiles()
+  }, [])
+
   const handleFileDeleted = (fileId: string) => {
     setFiles(files.filter(f => f.id !== fileId))
   }
 
   const handleDeleteUser = async () => {
     setIsDeleting(true)
-    // Simulamos eliminacion
     setTimeout(() => {
       toast.success("Usuario eliminado")
       onUserDeleted?.()
       setIsDeleting(false)
     }, 500)
+  }
+
+  // 🔥 subir archivos REAL
+  const subirArchivos = async (files: File[], tipo: "ESTUDIO" | "INFORME") => {
+    for (const file of files) {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("pacienteId", user.id)
+      formData.append("tipo", tipo)
+
+      await fetch("/api/upload", {
+        method: "POST",
+        body: formData
+      })
+    }
   }
 
   const handleUploadFiles = async () => {
@@ -62,35 +91,17 @@ export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
     setIsUploading(true)
 
     try {
-      // Agregar estudios
-      for (const file of newEstudios) {
-        const newFile = addMockFile({
-          nombre: file.name,
-          tipo: "ESTUDIO",
-          url: `/mock/${file.name}`,
-          size: file.size,
-          mimeType: file.type,
-          userId: user.id,
-        })
-        setFiles(prev => [...prev, newFile])
-      }
-
-      // Agregar informes
-      for (const file of newInformes) {
-        const newFile = addMockFile({
-          nombre: file.name,
-          tipo: "INFORME",
-          url: `/mock/${file.name}`,
-          size: file.size,
-          mimeType: file.type,
-          userId: user.id,
-        })
-        setFiles(prev => [...prev, newFile])
-      }
+      await subirArchivos(newEstudios, "ESTUDIO")
+      await subirArchivos(newInformes, "INFORME")
 
       toast.success("Archivos subidos correctamente")
+
       setNewEstudios([])
       setNewInformes([])
+
+      // 🔥 recargar desde DB
+      await fetchFiles()
+
     } catch {
       toast.error("Error al subir archivos")
     } finally {
@@ -103,7 +114,7 @@ export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
   }
 
   const handleHistoriaEntryUpdated = (updatedEntry: HistoriaClinicaEntry) => {
-    setHistoriaEntries(prev => 
+    setHistoriaEntries(prev =>
       prev.map(e => e.id === updatedEntry.id ? updatedEntry : e)
     )
   }

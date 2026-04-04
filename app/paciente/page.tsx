@@ -9,19 +9,30 @@ import { Navbar } from "@/components/navbar"
 import { FileTable } from "@/components/file-table"
 import { Toaster } from "@/components/ui/sonner"
 
+const PACIENTE_ID = "cmng6jvzm0001v5wcp14by9yp"
+
 export default function PacientePage() {
   const [user, setUser] = useState<any>(null)
   const [files, setFiles] = useState<any[]>([])
+  const [historia, setHistoria] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const PACIENTE_ID = "cmng6jvzm0001v5wcp14by9yp" // 👈 tu paciente real
-
     fetch(`/api/paciente/${PACIENTE_ID}`)
-      .then(res => res.json())
-      .then(data => {
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error("Error al cargar paciente")
+        }
+        return res.json()
+      })
+      .then((data) => {
         setUser(data)
         setFiles(data.archivos || [])
+        setHistoria(data.historias || []) // 🔥 ESTA ES LA CLAVE
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error(err)
         setLoading(false)
       })
   }, [])
@@ -125,16 +136,46 @@ export default function PacientePage() {
             </TabsContent>
 
             {/* PLACEHOLDER */}
-            <TabsContent value="proximamente" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Próximamente</CardTitle>
-                  <CardDescription>
-                    Aquí vas a ver tu historia clínica y turnos
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </TabsContent>
+            <TabsContent value="historia" className="mt-6">
+  <Card>
+    <CardHeader>
+      <CardTitle>Historia Clínica</CardTitle>
+      <CardDescription>
+        Registro de consultas médicas
+      </CardDescription>
+    </CardHeader>
+
+    <CardContent>
+      {historia.length === 0 ? (
+        <p className="text-muted-foreground">
+          No hay registros todavía
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {historia.map((entry: any) => (
+            <div
+              key={entry.id}
+              className="border rounded-lg p-4"
+            >
+              <p className="font-medium">
+                {entry.motivo}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {new Date(entry.fecha).toLocaleDateString()}
+              </p>
+              <p className="text-sm mt-2">
+                <strong>Diagnóstico:</strong> {entry.diagnostico}
+              </p>
+              <p className="text-sm">
+                <strong>Tratamiento:</strong> {entry.tratamiento}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </CardContent>
+  </Card>
+</TabsContent>
 
           </Tabs>
         </div>
