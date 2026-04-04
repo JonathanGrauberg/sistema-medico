@@ -31,9 +31,7 @@ interface UserDetailsProps {
 
 export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
   const [files, setFiles] = useState<FileRecord[]>([])
-  const [historiaEntries, setHistoriaEntries] = useState<HistoriaClinicaEntry[]>(
-    getMockHistoriaByUserId(user.id)?.entries || []
-  )
+  const [historiaEntries, setHistoriaEntries] = useState<HistoriaClinicaEntry[]>([])
   const [isDeleting, setIsDeleting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [newEstudios, setNewEstudios] = useState<File[]>([])
@@ -52,7 +50,8 @@ export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
 
   useEffect(() => {
     fetchFiles()
-  }, [])
+    fetchHistorias()
+  }, [user.id])
 
   const handleFileDeleted = (fileId: string) => {
     setFiles(files.filter(f => f.id !== fileId))
@@ -118,6 +117,16 @@ export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
       prev.map(e => e.id === updatedEntry.id ? updatedEntry : e)
     )
   }
+
+  const fetchHistorias = async () => {
+  try {
+    const res = await fetch(`/api/historias?pacienteId=${user.id}`)
+    const data = await res.json()
+    setHistoriaEntries(data || [])
+  } catch {
+    toast.error("Error cargando historia clínica")
+  }
+}
 
   const estudios = files.filter(f => f.tipo === "ESTUDIO")
   const informes = files.filter(f => f.tipo === "INFORME")

@@ -101,13 +101,18 @@ model Archivo {
 
 model HistoriaClinica {
   id          String   @id @default(cuid())
+
   pacienteId  String
   paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 
   medicoId    String
   medico      User     @relation(fields: [medicoId], references: [id])
 
-  contenido   String
+  motivo         String
+  diagnostico    String
+  tratamiento    String
+  observaciones  String?
+
   fecha       DateTime @default(now())
 
   @@index([pacienteId])
