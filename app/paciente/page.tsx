@@ -81,8 +81,8 @@ export default function PacientePage() {
                 <FileText className="mr-2 h-4 w-4" />
                 Mis Archivos
               </TabsTrigger>
-              <TabsTrigger value="proximamente">
-                Próximamente
+              <TabsTrigger value="historia">
+                Historia Clínica
               </TabsTrigger>
             </TabsList>
 

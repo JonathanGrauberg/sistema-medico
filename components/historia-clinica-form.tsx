@@ -17,7 +17,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { addMockHistoriaEntry, updateMockHistoriaEntry } from "@/lib/mock-data"
 import type { HistoriaClinicaEntry } from "@/lib/types"
 
 interface HistoriaClinicaFormProps {
@@ -71,7 +70,7 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.medicoNombre || !formData.motivo || !formData.diagnostico || !formData.tratamiento) {
       toast.error("Completa los campos requeridos")
       return
@@ -81,22 +80,47 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
 
     try {
       if (isEditing && editingEntry) {
-        const updated = updateMockHistoriaEntry(userId, editingEntry.id, formData)
-        if (updated) {
-          toast.success("Entrada actualizada")
-          onEntryUpdated?.(updated)
-        }
+        // 🔧 UPDATE (cuando tengas endpoint PUT lo conectamos acá)
+        toast.success("Edición pendiente de implementación API")
+        onEntryUpdated?.(editingEntry)
       } else {
-        const newEntry = addMockHistoriaEntry(userId, {
-          ...formData,
-          fecha: new Date(),
-        })
-        toast.success("Entrada agregada a la historia clinica")
-        onEntryAdded(newEntry)
+        const newEntry = await fetch("/api/historias", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            pacienteId: userId,
+            medicoId: "cmng7ckur0001v5moeku7lwi8", // temporal
+            contenido: `
+Motivo: ${formData.motivo}
+Diagnóstico: ${formData.diagnostico}
+Tratamiento: ${formData.tratamiento}
+Observaciones: ${formData.observaciones}
+            `
+          })
+        }).then(res => res.json())
+
+        toast.success("Entrada agregada a la historia clínica")
+
+        // ⚠️ Adaptación a tu tipo local (ajustar según respuesta real de la API)
+        const parsedEntry: HistoriaClinicaEntry = {
+          id: newEntry.id,
+          fecha: new Date(newEntry.createdAt || new Date()),
+          medicoNombre: formData.medicoNombre,
+          motivo: formData.motivo,
+          diagnostico: formData.diagnostico,
+          tratamiento: formData.tratamiento,
+          observaciones: formData.observaciones,
+        }
+
+        onEntryAdded(parsedEntry)
         resetForm()
       }
+
       setOpen(false)
-    } catch {
+    } catch (error) {
+      console.error(error)
       toast.error("Error al guardar")
     } finally {
       setIsSubmitting(false)
@@ -118,14 +142,15 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
           </Button>
         )}
       </DialogTrigger>
+
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Editar Entrada" : "Nueva Entrada de Historia Clinica"}
           </DialogTitle>
           <DialogDescription>
-            {isEditing 
-              ? "Modifica los datos de esta consulta" 
+            {isEditing
+              ? "Modifica los datos de esta consulta"
               : "Agrega una nueva consulta o registro al historial del paciente"}
           </DialogDescription>
         </DialogHeader>
@@ -219,7 +244,7 @@ export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpda
   }
 
   const handleEntryUpdated = (updatedEntry: HistoriaClinicaEntry) => {
-    setLocalEntries(prev => 
+    setLocalEntries(prev =>
       prev.map(e => e.id === updatedEntry.id ? updatedEntry : e)
     )
     onEntryUpdated?.(updatedEntry)
@@ -251,11 +276,6 @@ export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpda
             <p className="mt-4 text-muted-foreground">
               No hay registros en la historia clinica
             </p>
-            {!readOnly && (
-              <p className="text-sm text-muted-foreground">
-                Agrega la primera entrada usando el boton de arriba
-              </p>
-            )}
           </CardContent>
         </Card>
       ) : (
@@ -273,8 +293,8 @@ export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpda
                         {formatDate(entry.fecha)}
                       </div>
                       {!readOnly && (
-                        <HistoriaClinicaForm 
-                          userId={userId} 
+                        <HistoriaClinicaForm
+                          userId={userId}
                           onEntryAdded={handleEntryAdded}
                           editingEntry={entry}
                           onEntryUpdated={handleEntryUpdated}
@@ -284,15 +304,18 @@ export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpda
                   </div>
                   <CardDescription>{entry.medicoNombre}</CardDescription>
                 </CardHeader>
+
                 <CardContent className="space-y-3 text-sm">
                   <div>
                     <p className="font-medium text-foreground">Diagnostico</p>
                     <p className="text-muted-foreground">{entry.diagnostico}</p>
                   </div>
+
                   <div>
                     <p className="font-medium text-foreground">Tratamiento</p>
                     <p className="text-muted-foreground">{entry.tratamiento}</p>
                   </div>
+
                   {entry.observaciones && (
                     <div>
                       <p className="font-medium text-foreground">Observaciones</p>
