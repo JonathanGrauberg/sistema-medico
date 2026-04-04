@@ -137,47 +137,50 @@ export default function PacientePage() {
 
             {/* PLACEHOLDER */}
             <TabsContent value="historia" className="mt-6">
-  <Card>
-    <CardHeader>
-      <CardTitle>Historia Clínica</CardTitle>
-      <CardDescription>
-        Registro de consultas médicas
-      </CardDescription>
-    </CardHeader>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Historia Clínica</CardTitle>
+                  <CardDescription>
+                    Registro de consultas médicas
+                  </CardDescription>
+                </CardHeader>
 
-    <CardContent>
-      {historia.length === 0 ? (
-        <p className="text-muted-foreground">
-          No hay registros todavía
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {historia.map((entry: any) => (
-            <div
-              key={entry.id}
-              className="border rounded-lg p-4"
-            >
-              <p className="font-medium">
-                {entry.motivo}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {new Date(entry.fecha).toLocaleDateString()}
-              </p>
-              <p className="text-sm mt-2">
-                <strong>Diagnóstico:</strong> {entry.diagnostico}
-              </p>
-              <p className="text-sm">
-                <strong>Tratamiento:</strong> {entry.tratamiento}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </CardContent>
-  </Card>
-</TabsContent>
+                <CardContent>
+                  {historia.length === 0 ? (
+                    <p className="text-muted-foreground">
+                      No hay registros todavía
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      {historia.map((entry: any) => (
+                        <div
+                          key={entry.id}
+                          className="border rounded-lg p-4"
+                        >
+                          <p className="font-medium">
+                            {entry.motivo}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(entry.fecha).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm mt-2">
+                            <strong>Diagnóstico:</strong> {entry.diagnostico}
+                          </p>
+                          <p className="text-sm">
+                            <strong>Tratamiento:</strong> {entry.tratamiento}
+                          </p>
+                          <p className="text-sm">
+                            <strong>Observaciones:</strong> {entry.observaciones}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          </Tabs>
+          </Tabs> 
         </div>
       </main>
     </div>
