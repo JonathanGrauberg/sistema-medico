@@ -91,13 +91,11 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
           },
           body: JSON.stringify({
             pacienteId: userId,
-            medicoId: "cmng7ckur0001v5moeku7lwi8", // temporal
-            contenido: `
-Motivo: ${formData.motivo}
-Diagnóstico: ${formData.diagnostico}
-Tratamiento: ${formData.tratamiento}
-Observaciones: ${formData.observaciones}
-            `
+            medicoId: "cmng7ckur0001v5moeku7lwi8",
+            motivo: formData.motivo,
+            diagnostico: formData.diagnostico,
+            tratamiento: formData.tratamiento,
+            observaciones: formData.observaciones
           })
         }).then(res => res.json())
 
@@ -243,6 +241,8 @@ export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpda
     })
   }
 
+
+
   const handleEntryUpdated = (updatedEntry: HistoriaClinicaEntry) => {
     setLocalEntries(prev =>
       prev.map(e => e.id === updatedEntry.id ? updatedEntry : e)
@@ -255,6 +255,7 @@ export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpda
     onEntryAdded(newEntry)
   }
 
+    
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -278,12 +279,15 @@ export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpda
             </p>
           </CardContent>
         </Card>
+        
       ) : (
         <div className="space-y-3">
           {localEntries
+          
             .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+            
             .map((entry) => (
-              <Card key={entry.id} className="border-l-4 border-l-primary">
+              <Card key={entry.id ?? `${entry.fecha}-${Math.random()}`} className="border-l-4 border-l-primary">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">{entry.motivo}</CardTitle>

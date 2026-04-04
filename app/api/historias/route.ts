@@ -1,3 +1,4 @@
+//app\api\historias\route.ts:
 import { PrismaClient } from "@prisma/client"
 import { NextResponse } from "next/server"
 
@@ -23,26 +24,16 @@ export async function GET(req: Request) {
       }
     })
 
-    // 🔥 parsear contenido a estructura usable
-    const parsed = historias.map(h => {
-      const contenido = h.contenido || ""
-
-      const getValue = (label: string) => {
-        const regex = new RegExp(`${label}:\\s*(.*)`)
-        const match = contenido.match(regex)
-        return match ? match[1] : ""
-      }
-
-      return {
-        id: h.id,
-        fecha: h.fecha,
-        medicoNombre: `${h.medico?.nombre || ""} ${h.medico?.apellido || ""}`,
-        motivo: getValue("Motivo"),
-        diagnostico: getValue("Diagnóstico"),
-        tratamiento: getValue("Tratamiento"),
-        observaciones: getValue("Observaciones"),
-      }
-    })
+    // ✅ YA NO parseamos nada, usamos campos reales
+    const parsed = historias.map(h => ({
+      id: h.id,
+      fecha: h.fecha,
+      medicoNombre: `${h.medico?.nombre || ""} ${h.medico?.apellido || ""}`,
+      motivo: h.motivo,
+      diagnostico: h.diagnostico,
+      tratamiento: h.tratamiento,
+      observaciones: h.observaciones,
+    }))
 
     return NextResponse.json(parsed)
   } catch (error) {
@@ -55,7 +46,7 @@ export async function GET(req: Request) {
 }
 
 
-// ✅ POST (el tuyo, lo dejo igual)
+// ✅ POST CORREGIDO (SIN contenido)
 export async function POST(req: Request) {
   try {
     const body = await req.json()
@@ -64,7 +55,10 @@ export async function POST(req: Request) {
       data: {
         pacienteId: body.pacienteId,
         medicoId: body.medicoId,
-        contenido: body.contenido,
+        motivo: body.motivo,
+        diagnostico: body.diagnostico,
+        tratamiento: body.tratamiento,
+        observaciones: body.observaciones,
         fecha: new Date()
       }
     })

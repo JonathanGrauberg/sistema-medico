@@ -228,9 +228,9 @@ export function getMockFilesByUserId(userId: string): FileRecord[] {
   return mockState.files.filter(f => f.userId === userId)
 }
 
-export function getMockHistoriaByUserId(userId: string): HistoriaClinica | undefined {
-  return mockState.historiasClinicas.find(hc => hc.userId === userId)
-}
+//export function getMockHistoriaByUserId(userId: string): HistoriaClinica | undefined {
+//  return mockState.historiasClinicas.find(hc => hc.userId === userId)
+//}
 
 export function addMockHistoriaEntry(userId: string, entry: Omit<HistoriaClinicaEntry, "id">): HistoriaClinicaEntry {
   let historia = mockState.historiasClinicas.find(hc => hc.userId === userId)

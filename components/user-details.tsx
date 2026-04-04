@@ -20,7 +20,6 @@ import { FileTable } from "@/components/file-table"
 import { FileDropzone } from "@/components/file-dropzone"
 import { HistoriaClinicaView } from "@/components/historia-clinica-form"
 import { toast } from "sonner"
-import { getMockHistoriaByUserId } from "@/lib/mock-data"
 import type { User as UserType, FileRecord, HistoriaClinicaEntry } from "@/lib/types"
 
 interface UserDetailsProps {
