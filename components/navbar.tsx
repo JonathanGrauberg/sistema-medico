@@ -4,7 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Activity, Home, UserSearch, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 
 const navItems = [
   { href: "/", label: "Inicio", icon: Home },
@@ -16,39 +15,47 @@ export function Navbar() {
   const pathname = usePathname()
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <Activity className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-semibold tracking-tight">MediFiles</span>
-        </Link>
+    <header className="sticky top-4 z-50 w-full">
+      <div className="mx-auto max-w-6xl px-4">
+        
+        {/* NAV CONTAINER */}
+        <div className="flex items-center justify-between rounded-full border bg-primary/70 dark:bg-background/70 backdrop-blur-md shadow-md px-6 py-3">
 
-        <nav className="flex items-center gap-1">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            
-            return (
-              <Button
-                key={item.href}
-                variant={isActive ? "secondary" : "ghost"}
-                size="sm"
-                asChild
-                className={cn(
-                  "gap-2",
-                  isActive && "bg-secondary"
-                )}
-              >
-                <Link href={item.href}>
+          {/* LOGO */}
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary">
+              <Activity className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="text-sm font-semibold tracking-tight">
+              MediFiles
+            </span>
+          </Link>
+
+          {/* NAV ITEMS */}
+          <nav className="flex items-center gap-2">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-2 rounded-full px-4 py-2 text-sm transition",
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-white hover:bg-muted"
+                  )}
+                >
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{item.label}</span>
                 </Link>
-              </Button>
-            )
-          })}
-        </nav>
+              )
+            })}
+          </nav>
+
+        </div>
       </div>
     </header>
   )
