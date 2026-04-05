@@ -2,120 +2,155 @@
 
 import { useEffect, useState } from "react"
 
-const HORAS = Array.from({ length: 13 }, (_, i) => i + 8)
+type Props = {
+  fechaBase: Date
+  search: string
+}
 
-export function AgendaMedicos() {
+export function AgendaMedicos({ fechaBase, search }: Props) {
   const [turnos, setTurnos] = useState<any[]>([])
-  const [medicos, setMedicos] = useState<any[]>([])
 
   useEffect(() => {
-    fetch("/api/turnos").then(res => res.json()).then(setTurnos)
-    fetch("/api/medicos").then(res => res.json()).then(setMedicos)
-  }, [])
-
-  const getTurno = (hora: number, medicoId: string) => {
-    return turnos.find(t => {
-      const date = new Date(t.fecha)
-      return date.getHours() === hora && t.medicoId === medicoId
-    })
-  }
-
-  const cambiarEstado = async (id: string, estado: string) => {
-    await fetch(`/api/turnos/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ estado })
-    })
-
-    // refrescar turnos
     fetch("/api/turnos")
       .then(res => res.json())
       .then(setTurnos)
+  }, [])
+
+  // ================= FILTRO =================
+
+  const turnosFiltrados = turnos.filter(t =>
+    `${t.paciente?.nombre} ${t.paciente?.apellido}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  )
+
+  // ================= SEMANA =================
+
+  const getSemana = (baseDate: Date) => {
+    const dia = baseDate.getDay()
+    const lunes = new Date(baseDate)
+
+    lunes.setDate(baseDate.getDate() - (dia === 0 ? 6 : dia - 1))
+
+    const dias = []
+
+    for (let i = 0; i < 5; i++) {
+      const fecha = new Date(lunes)
+      fecha.setDate(lunes.getDate() + i)
+
+      const year = fecha.getFullYear()
+      const month = String(fecha.getMonth() + 1).padStart(2, "0")
+      const day = String(fecha.getDate()).padStart(2, "0")
+
+      dias.push({
+        nombre: ["Lun", "Mar", "Mié", "Jue", "Vie"][i],
+        fechaStr: fecha.toLocaleDateString(),
+        dateKey: `${year}-${month}-${day}`
+      })
+    }
+
+    return dias
+  }
+
+  const diasSemana = getSemana(fechaBase)
+
+  // ================= HORARIOS =================
+
+  const horarios = []
+  for (let h = 8; h <= 18; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      horarios.push(
+        `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+      )
+    }
+  }
+
+  // ================= BUSCAR TURNO =================
+
+  const getTurno = (dateKey: string, time: string) => {
+    return turnosFiltrados.find(t => {
+      const d = new Date(t.fecha)
+
+      const localDate = `${d.getFullYear()}-${String(
+        d.getMonth() + 1
+      ).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+
+      const localTime = `${String(d.getHours()).padStart(2, "0")}:${String(
+        d.getMinutes()
+      ).padStart(2, "0")}`
+
+      return localDate === dateKey && localTime === time
+    })
+  }
+
+  // ================= COLOR =================
+
+  const getColor = (estado: string) => {
+    switch (estado) {
+      case "CONFIRMADO":
+        return "bg-[#39B5B5]"
+      case "PENDIENTE":
+        return "bg-yellow-500"
+      case "EN_SALA":
+        return "bg-blue-500"
+      case "ATENDIDO":
+        return "bg-green-600"
+      case "CANCELADO":
+        return "bg-red-500"
+      default:
+        return "bg-gray-300"
+    }
   }
 
   return (
-    <div className="mt-6 border rounded-lg overflow-auto">
+    <div className="flex-1 flex overflow-x-auto p-4 gap-4">
 
-      {/* HEADER */}
-      <div
-        className="grid border-b bg-muted"
-        style={{ gridTemplateColumns: `80px repeat(${medicos.length}, 1fr)` }}
-      >
-        <div className="p-2 font-medium border-r">Hora</div>
-
-        {medicos.map(m => (
-          <div key={m.id} className="p-2 text-center font-medium border-r">
-            {m.nombre}
-          </div>
-        ))}
-      </div>
-
-      {/* FILAS */}
-      {HORAS.map(hora => (
+      {diasSemana.map(dia => (
         <div
-          key={hora}
-          className="grid border-b min-h-[80px]"
-          style={{ gridTemplateColumns: `80px repeat(${medicos.length}, 1fr)` }}
+          key={dia.dateKey}
+          className="flex-1 min-w-[220px] bg-white rounded border flex flex-col"
         >
-          {/* Hora */}
-          <div className="border-r p-2 text-sm text-muted-foreground">
-            {hora}:00
+          {/* HEADER */}
+          <div className="p-3 border-b font-medium text-sm">
+            {dia.nombre} {dia.fechaStr}
           </div>
 
-          {/* Columnas por médico */}
-          {medicos.map(medico => {
-            const turno = getTurno(hora, medico.id)
+          {/* HORAS */}
+          <div className="flex-1 overflow-y-auto">
+            {horarios.map(hora => {
+              const turno = getTurno(dia.dateKey, hora)
 
-            return (
-              <div key={medico.id} className="border-r p-2">
-                {turno ? (
-                  <div className="space-y-2 bg-primary/10 border border-primary rounded-md p-2">
+              return (
+                <div key={hora} className="flex border-b min-h-[45px]">
 
-                    {/* Nombre paciente */}
-                    <p className="font-medium text-sm">
-                      {turno.paciente.nombre} {turno.paciente.apellido}
-                    </p>
-
-                    {/* Estado */}
-                    <p className="text-xs text-muted-foreground">
-                      {turno.estado}
-                    </p>
-
-                    {/* Botones */}
-                    <div className="flex gap-1 flex-wrap">
-                      <button
-                        onClick={() => cambiarEstado(turno.id, "PENDIENTE")}
-                        className="text-xs px-2 py-1 border rounded hover:bg-muted"
-                      >
-                        ⏳
-                      </button>
-
-                      <button
-                        onClick={() => cambiarEstado(turno.id, "EN_SALA")}
-                        className="text-xs px-2 py-1 border rounded hover:bg-muted"
-                      >
-                        🪑
-                      </button>
-
-                      <button
-                        onClick={() => cambiarEstado(turno.id, "ATENDIDO")}
-                        className="text-xs px-2 py-1 border rounded hover:bg-muted"
-                      >
-                        ✅
-                      </button>
-                    </div>
-
+                  <div className="w-14 text-xs text-gray-500 flex items-center justify-center">
+                    {hora}
                   </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Libre
-                  </p>
-                )}
-              </div>
-            )
-          })}
+
+                  <div className="flex-1 p-1">
+                    {turno ? (
+                      <div
+                        onClick={() => alert(`Turno ID: ${turno.id}`)}
+                        className={`h-full rounded px-2 py-1 text-white text-xs cursor-pointer ${getColor(
+                          turno.estado
+                        )}`}
+                      >
+                        <div className="font-semibold truncate">
+                          {turno.paciente?.apellido},{" "}
+                          {turno.paciente?.nombre}
+                        </div>
+                        <div className="text-[10px] opacity-80">
+                          {turno.medico?.nombre}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full bg-gray-100 rounded opacity-40"></div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       ))}
     </div>
