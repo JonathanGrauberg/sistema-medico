@@ -26,11 +26,17 @@ interface HistoriaClinicaFormProps {
   onEntryUpdated?: (entry: HistoriaClinicaEntry) => void
 }
 
-export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntryUpdated }: HistoriaClinicaFormProps) {
+export function HistoriaClinicaForm({
+  userId,
+  onEntryAdded,
+  editingEntry,
+  onEntryUpdated
+}: HistoriaClinicaFormProps) {
+
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
   const [formData, setFormData] = useState({
-    medicoNombre: editingEntry?.medicoNombre || "",
     motivo: editingEntry?.motivo || "",
     diagnostico: editingEntry?.diagnostico || "",
     tratamiento: editingEntry?.tratamiento || "",
@@ -45,7 +51,6 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
 
   const resetForm = () => {
     setFormData({
-      medicoNombre: "",
       motivo: "",
       diagnostico: "",
       tratamiento: "",
@@ -55,9 +60,9 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen)
+
     if (isOpen && editingEntry) {
       setFormData({
-        medicoNombre: editingEntry.medicoNombre,
         motivo: editingEntry.motivo,
         diagnostico: editingEntry.diagnostico,
         tratamiento: editingEntry.tratamiento,
@@ -71,7 +76,7 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.medicoNombre || !formData.motivo || !formData.diagnostico || !formData.tratamiento) {
+    if (!formData.motivo || !formData.diagnostico || !formData.tratamiento) {
       toast.error("Completa los campos requeridos")
       return
     }
@@ -80,7 +85,7 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
 
     try {
       if (isEditing && editingEntry) {
-        // 🔧 UPDATE (cuando tengas endpoint PUT lo conectamos acá)
+        // 🔧 UPDATE (futuro endpoint PUT)
         toast.success("Edición pendiente de implementación API")
         onEntryUpdated?.(editingEntry)
       } else {
@@ -91,7 +96,7 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
           },
           body: JSON.stringify({
             pacienteId: userId,
-            medicoId: "cmng7ckur0001v5moeku7lwi8",
+            medicoId: "cmng7ckur0001v5moeku7lwi8", // 🔥 luego lo sacamos de auth
             motivo: formData.motivo,
             diagnostico: formData.diagnostico,
             tratamiento: formData.tratamiento,
@@ -101,15 +106,15 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
 
         toast.success("Entrada agregada a la historia clínica")
 
-        // ⚠️ Adaptación a tu tipo local (ajustar según respuesta real de la API)
+        // ✅ Adaptado a DB real
         const parsedEntry: HistoriaClinicaEntry = {
           id: newEntry.id,
-          fecha: new Date(newEntry.createdAt || new Date()),
-          medicoNombre: formData.medicoNombre,
-          motivo: formData.motivo,
-          diagnostico: formData.diagnostico,
-          tratamiento: formData.tratamiento,
-          observaciones: formData.observaciones,
+          fecha: new Date(newEntry.fecha),
+          medicoNombre: "Médico", // 🔥 temporal (se corrige con fetch real)
+          motivo: newEntry.motivo,
+          diagnostico: newEntry.diagnostico,
+          tratamiento: newEntry.tratamiento,
+          observaciones: newEntry.observaciones,
         }
 
         onEntryAdded(parsedEntry)
@@ -117,6 +122,7 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
       }
 
       setOpen(false)
+
     } catch (error) {
       console.error(error)
       toast.error("Error al guardar")
@@ -155,13 +161,10 @@ export function HistoriaClinicaForm({ userId, onEntryAdded, editingEntry, onEntr
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="medicoNombre">Nombre del Medico *</Label>
-            <Input
-              id="medicoNombre"
-              placeholder="Dr. Juan Perez"
-              value={formData.medicoNombre}
-              onChange={(e) => handleChange("medicoNombre", e.target.value)}
-            />
+            <Label>Médico</Label>
+            <p className="text-sm text-muted-foreground">
+              Dr. Juan Gomez
+            </p>
           </div>
 
           <div className="space-y-2">

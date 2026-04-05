@@ -18,25 +18,40 @@ export default function PacientePage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`/api/paciente/${PACIENTE_ID}`)
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error("Error al cargar paciente")
-        }
-        return res.json()
-      })
-      .then((data) => {
-        setUser(data)
-        setFiles(data.archivos || [])
-        setHistoria(data.historias || []) // 🔥 ESTA ES LA CLAVE
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error(err)
-        setLoading(false)
-      })
-  }, [])
 
+  const fetchPaciente = async () => {
+    try {
+      const res = await fetch(`/api/paciente/${PACIENTE_ID}`)
+      if (!res.ok) throw new Error("Error al cargar paciente")
+
+      const data = await res.json()
+
+      setUser(data)
+      setFiles(data.archivos || [])
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const fetchHistorias = async () => {
+    try {
+      const res = await fetch(`/api/historias?pacienteId=${PACIENTE_ID}`)
+      const data = await res.json()
+      setHistoria(data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const loadData = async () => {
+    await fetchPaciente()
+    await fetchHistorias()
+    setLoading(false)
+  }
+
+  loadData()
+
+}, [])
   const estudios = files.filter(f => f.tipo === "ESTUDIO")
   const informes = files.filter(f => f.tipo === "INFORME")
 
@@ -47,6 +62,8 @@ export default function PacientePage() {
   if (!user) {
     return <p className="p-6">Paciente no encontrado</p>
   }
+
+  console.log("🧠 HISTORIAS:", historia)
 
   return (
     <div className="min-h-screen bg-background">
@@ -153,26 +170,52 @@ export default function PacientePage() {
                   ) : (
                     <div className="space-y-4">
                       {historia.map((entry: any) => (
-                        <div
+                        <Card
                           key={entry.id}
-                          className="border rounded-lg p-4"
+                          className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition"
                         >
-                          <p className="font-medium">
-                            {entry.motivo}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(entry.fecha).toLocaleDateString()}
-                          </p>
-                          <p className="text-sm mt-2">
-                            <strong>Diagnóstico:</strong> {entry.diagnostico}
-                          </p>
-                          <p className="text-sm">
-                            <strong>Tratamiento:</strong> {entry.tratamiento}
-                          </p>
-                          <p className="text-sm">
-                            <strong>Observaciones:</strong> {entry.observaciones}
-                          </p>
-                        </div>
+                          <CardHeader className="pb-2">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-base">
+                                {entry.motivo}
+                              </CardTitle>
+
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(entry.fecha).toLocaleDateString("es-AR")}
+                              </span>
+                            </div>
+
+                            <CardDescription>
+                              {entry.medicoNombre || "Médico"}
+                              
+                            </CardDescription>
+                          </CardHeader>
+
+                          <CardContent className="space-y-3 text-sm">
+                            <div>
+                              <p className="font-medium">Diagnóstico</p>
+                              <p className="text-muted-foreground">
+                                {entry.diagnostico || "-"}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="font-medium">Tratamiento</p>
+                              <p className="text-muted-foreground">
+                                {entry.tratamiento || "-"}
+                              </p>
+                            </div>
+
+                            {entry.observaciones && (
+                              <div>
+                                <p className="font-medium">Observaciones</p>
+                                <p className="text-muted-foreground">
+                                  {entry.observaciones}
+                                </p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
                   )}
