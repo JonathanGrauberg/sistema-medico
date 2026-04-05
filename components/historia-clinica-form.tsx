@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { CalendarIcon, Plus, Save, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,7 +21,7 @@ import type { HistoriaClinicaEntry } from "@/lib/types"
 
 interface HistoriaClinicaFormProps {
   userId: string
-  onEntryAdded: (entry: HistoriaClinicaEntry) => void
+  onEntryAdded: (entry: HistoriaClinicaEntry | null) => void
   editingEntry?: HistoriaClinicaEntry
   onEntryUpdated?: (entry: HistoriaClinicaEntry) => void
 }
@@ -85,39 +85,29 @@ export function HistoriaClinicaForm({
 
     try {
       if (isEditing && editingEntry) {
-        // 🔧 UPDATE (futuro endpoint PUT)
         toast.success("Edición pendiente de implementación API")
         onEntryUpdated?.(editingEntry)
       } else {
-        const newEntry = await fetch("/api/historias", {
+        await fetch("/api/historias", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
             pacienteId: userId,
-            medicoId: "cmng7ckur0001v5moeku7lwi8", // 🔥 luego lo sacamos de auth
+            medicoId: "cmng7ckur0001v5moeku7lwi8",
             motivo: formData.motivo,
             diagnostico: formData.diagnostico,
             tratamiento: formData.tratamiento,
             observaciones: formData.observaciones
           })
-        }).then(res => res.json())
+        })
 
         toast.success("Entrada agregada a la historia clínica")
 
-        // ✅ Adaptado a DB real
-        const parsedEntry: HistoriaClinicaEntry = {
-          id: newEntry.id,
-          fecha: new Date(newEntry.fecha),
-          medicoNombre: "Médico", // 🔥 temporal (se corrige con fetch real)
-          motivo: newEntry.motivo,
-          diagnostico: newEntry.diagnostico,
-          tratamiento: newEntry.tratamiento,
-          observaciones: newEntry.observaciones,
-        }
+        // 🔥 refetch real
+        onEntryAdded(null)
 
-        onEntryAdded(parsedEntry)
         resetForm()
       }
 
@@ -163,7 +153,7 @@ export function HistoriaClinicaForm({
           <div className="space-y-2">
             <Label>Médico</Label>
             <p className="text-sm text-muted-foreground">
-              Dr. Juan Gomez
+              (se asigna automáticamente)
             </p>
           </div>
 
@@ -171,7 +161,6 @@ export function HistoriaClinicaForm({
             <Label htmlFor="motivo">Motivo de Consulta *</Label>
             <Input
               id="motivo"
-              placeholder="Control de rutina, dolor, etc."
               value={formData.motivo}
               onChange={(e) => handleChange("motivo", e.target.value)}
             />
@@ -181,7 +170,6 @@ export function HistoriaClinicaForm({
             <Label htmlFor="diagnostico">Diagnostico *</Label>
             <Textarea
               id="diagnostico"
-              placeholder="Descripcion del diagnostico..."
               value={formData.diagnostico}
               onChange={(e) => handleChange("diagnostico", e.target.value)}
               rows={3}
@@ -192,7 +180,6 @@ export function HistoriaClinicaForm({
             <Label htmlFor="tratamiento">Tratamiento *</Label>
             <Textarea
               id="tratamiento"
-              placeholder="Indicaciones y medicamentos..."
               value={formData.tratamiento}
               onChange={(e) => handleChange("tratamiento", e.target.value)}
               rows={3}
@@ -203,7 +190,6 @@ export function HistoriaClinicaForm({
             <Label htmlFor="observaciones">Observaciones</Label>
             <Textarea
               id="observaciones"
-              placeholder="Notas adicionales (opcional)"
               value={formData.observaciones}
               onChange={(e) => handleChange("observaciones", e.target.value)}
               rows={2}
@@ -226,15 +212,12 @@ export function HistoriaClinicaForm({
 }
 
 interface HistoriaClinicaViewProps {
-  entries: HistoriaClinicaEntry[]
   userId: string
-  onEntryAdded: (entry: HistoriaClinicaEntry) => void
-  onEntryUpdated?: (entry: HistoriaClinicaEntry) => void
   readOnly?: boolean
 }
 
-export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpdated, readOnly = false }: HistoriaClinicaViewProps) {
-  const [localEntries, setLocalEntries] = useState(entries)
+export function HistoriaClinicaView({ userId, readOnly = false }: HistoriaClinicaViewProps) {
+  const [localEntries, setLocalEntries] = useState<HistoriaClinicaEntry[]>([])
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString("es-AR", {
@@ -244,23 +227,32 @@ export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpda
     })
   }
 
-
-
-  const handleEntryUpdated = (updatedEntry: HistoriaClinicaEntry) => {
-    setLocalEntries(prev =>
-      prev.map(e => e.id === updatedEntry.id ? updatedEntry : e)
-    )
-    onEntryUpdated?.(updatedEntry)
+  const fetchHistorias = async () => {
+    try {
+      const res = await fetch(`/api/historias?pacienteId=${userId}`)
+      const data = await res.json()
+      setLocalEntries(data || [])
+    } catch {
+      toast.error("Error cargando historia clínica")
+    }
   }
 
-  const handleEntryAdded = (newEntry: HistoriaClinicaEntry) => {
-    setLocalEntries(prev => [...prev, newEntry])
-    onEntryAdded(newEntry)
+  useEffect(() => {
+  if (userId) {
+    fetchHistorias()
+  }
+}, [userId])
+
+  const handleEntryAdded = async () => {
+    await fetchHistorias()
   }
 
-    
+  const handleEntryUpdated = async () => {
+    await fetchHistorias()
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Historia Clinica</h3>
@@ -282,23 +274,27 @@ export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpda
             </p>
           </CardContent>
         </Card>
-        
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-6 border-l pl-4">
           {localEntries
-          
             .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
-            
             .map((entry) => (
-              <Card key={entry.id ?? `${entry.fecha}-${Math.random()}`} className="border-l-4 border-l-primary">
+              <Card
+                key={entry.id}
+                className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition"
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{entry.motivo}</CardTitle>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <CardTitle className="text-base font-semibold">
+                      {entry.motivo}
+                    </CardTitle>
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <CalendarIcon className="h-3 w-3" />
                         {formatDate(entry.fecha)}
                       </div>
+
                       {!readOnly && (
                         <HistoriaClinicaForm
                           userId={userId}
@@ -309,23 +305,26 @@ export function HistoriaClinicaView({ entries, userId, onEntryAdded, onEntryUpda
                       )}
                     </div>
                   </div>
-                  <CardDescription>{entry.medicoNombre}</CardDescription>
+
+                  <CardDescription className="text-xs">
+                    👨‍⚕️ {entry.medicoNombre || "Médico"}
+                  </CardDescription>
                 </CardHeader>
 
-                <CardContent className="space-y-3 text-sm">
+                <CardContent className="space-y-4 text-sm">
                   <div>
-                    <p className="font-medium text-foreground">Diagnostico</p>
+                    <p className="font-medium">Diagnóstico</p>
                     <p className="text-muted-foreground">{entry.diagnostico}</p>
                   </div>
 
                   <div>
-                    <p className="font-medium text-foreground">Tratamiento</p>
+                    <p className="font-medium">Tratamiento</p>
                     <p className="text-muted-foreground">{entry.tratamiento}</p>
                   </div>
 
                   {entry.observaciones && (
                     <div>
-                      <p className="font-medium text-foreground">Observaciones</p>
+                      <p className="font-medium">Observaciones</p>
                       <p className="text-muted-foreground">{entry.observaciones}</p>
                     </div>
                   )}
