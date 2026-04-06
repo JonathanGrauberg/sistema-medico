@@ -11,11 +11,9 @@ export async function PATCH(
     const body = await req.json()
 
     const turno = await prisma.turno.update({
-      where: {
-        id: params.id
-      },
+      where: { id: params.id },
       data: {
-        estado: body.estado
+        ...body
       }
     })
 

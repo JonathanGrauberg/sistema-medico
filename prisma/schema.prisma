@@ -137,6 +137,7 @@ model Turno {
 
   fecha       DateTime
   estado      TurnoEstado
+  ordenLlegada Int?
 
   notasSecretaria String?
   notasMedico     String?
