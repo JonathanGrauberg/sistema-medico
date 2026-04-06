@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Search,
   Plus,
   Users,
   Calendar,
   FileText,
-  BarChart3
+  BarChart3,
+  Timer
 } from "lucide-react"
 
 import { useRouter } from "next/navigation"
@@ -21,23 +22,40 @@ import { UserForm } from "@/components/user-form"
 import { Navbar } from "@/components/navbar"
 import { Toaster } from "@/components/ui/sonner"
 
+import { ReporteMedico } from "@/components/reporte-medico"
+import { SalaModal } from "@/components/sala-modal"
+
 import type { User } from "@/lib/types"
+
+// 🔥 MOCK SESSION (después lo reemplazamos con next-auth)
+const session = {
+  user: {
+    nombre: "Juan",
+    apellido: "Gómez"
+  }
+}
 
 export default function ProfesionalPage() {
   const router = useRouter()
+
+  const pacientesRef = useRef<HTMLDivElement | null>(null)
+
+  const [openSala, setOpenSala] = useState(false)
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [activeTab, setActiveTab] = useState("pacientes")
   const [searchQuery, setSearchQuery] = useState("")
   const [users, setUsers] = useState<User[]>([])
 
+  // 🔥 TRAER PACIENTES
   useEffect(() => {
     fetch("/api/pacientes")
       .then(res => res.json())
-      .then(data => setUsers(data))
+      .then(setUsers)
       .catch(err => console.error(err))
   }, [])
 
+  // 🔍 FILTRO
   const filteredUsers = users.filter(user => {
     const q = searchQuery.toLowerCase()
     return (
@@ -46,6 +64,14 @@ export default function ProfesionalPage() {
       user.dni.includes(q)
     )
   })
+
+  // 🔥 SCROLL A PACIENTES
+  const scrollToPacientes = () => {
+    pacientesRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    })
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,16 +82,16 @@ export default function ProfesionalPage() {
 
         {/* HEADER */}
         <div>
-          <h1 className="text-3xl font-bold">
-            Panel Profesional
+          <h1 className="text-3xl font-bold mt-14">
+            Dr. {session.user.nombre} {session.user.apellido}
           </h1>
           <p className="text-muted-foreground">
-            Gestioná tu clínica de forma simple
+            Panel Profesional
           </p>
         </div>
 
-        {/* 🔥 CARDS RÁPIDAS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {/* CARDS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
 
           <QuickCard
             icon={Calendar}
@@ -77,8 +103,8 @@ export default function ProfesionalPage() {
           <QuickCard
             icon={Users}
             title="Pacientes"
-            desc="Gestionar pacientes"
-            onClick={() => setActiveTab("pacientes")}
+            desc="Ir a pacientes"
+            onClick={scrollToPacientes}
           />
 
           <QuickCard
@@ -90,7 +116,14 @@ export default function ProfesionalPage() {
           <QuickCard
             icon={BarChart3}
             title="Reportes"
-            desc="Próximamente"
+            desc="Vista actual"
+          />
+
+          <QuickCard
+            icon={Timer}
+            title="Sala"
+            desc="Ver sala de espera"
+            onClick={() => setOpenSala(true)}
           />
         </div>
 
@@ -105,84 +138,99 @@ export default function ProfesionalPage() {
             }}
           />
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="space-y-10">
 
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="pacientes">
-                <Users className="mr-2 h-4 w-4" />
-                Pacientes
-              </TabsTrigger>
+            {/* 🔥 DASHBOARD PRINCIPAL */}
+            <ReporteMedico />
 
-              <TabsTrigger value="crear">
-                <Plus className="mr-2 h-4 w-4" />
-                Nuevo
-              </TabsTrigger>
-            </TabsList>
+            {/* 👥 PACIENTES */}
+            <div ref={pacientesRef}>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
 
-            <TabsContent value="pacientes" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pacientes</CardTitle>
-                </CardHeader>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="pacientes">
+                    <Users className="mr-2 h-4 w-4" />
+                    Pacientes
+                  </TabsTrigger>
 
-                <CardContent className="space-y-4">
+                  <TabsTrigger value="crear">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nuevo
+                  </TabsTrigger>
+                </TabsList>
 
-                  {/* 🔍 BUSCADOR */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar paciente..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
+                {/* LISTA */}
+                <TabsContent value="pacientes" className="mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Pacientes</CardTitle>
+                    </CardHeader>
 
-                  {/* LISTA */}
-                  {filteredUsers.length === 0 ? (
-                    <div className="text-center py-10 text-muted-foreground">
-                      Sin resultados
-                    </div>
-                  ) : (
-                    <div className="divide-y border rounded-lg">
-                      {filteredUsers.map(user => (
-                        <button
-                          key={user.id}
-                          onClick={() => setSelectedUser(user)}
-                          className="w-full p-4 text-left hover:bg-muted/50 flex justify-between"
-                        >
-                          <div>
-                            <p className="font-medium">
-                              {user.nombre} {user.apellido}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              DNI: {user.dni}
-                            </p>
-                          </div>
+                    <CardContent className="space-y-4">
 
-                          <span className="text-sm text-muted-foreground">
-                            Ver →
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                      {/* BUSCADOR */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar paciente..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
 
-                </CardContent>
-              </Card>
-            </TabsContent>
+                      {/* LISTA */}
+                      {filteredUsers.length === 0 ? (
+                        <div className="text-center py-10 text-muted-foreground">
+                          Sin resultados
+                        </div>
+                      ) : (
+                        <div className="divide-y border rounded-lg">
+                          {filteredUsers.map(user => (
+                            <button
+                              key={user.id}
+                              onClick={() => setSelectedUser(user)}
+                              className="w-full p-4 text-left hover:bg-muted/50 flex justify-between"
+                            >
+                              <div>
+                                <p className="font-medium">
+                                  {user.nombre} {user.apellido}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  DNI: {user.dni}
+                                </p>
+                              </div>
 
-            <TabsContent value="crear" className="mt-6">
-              <UserForm
-                onUserCreated={(newUser) => {
-                  setUsers(prev => [...prev, newUser])
-                  setActiveTab("pacientes")
-                }}
-              />
-            </TabsContent>
+                              <span className="text-sm text-muted-foreground">
+                                Ver →
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
 
-          </Tabs>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* CREAR */}
+                <TabsContent value="crear" className="mt-6">
+                  <UserForm
+                    onUserCreated={(newUser) => {
+                      setUsers(prev => [...prev, newUser])
+                      setActiveTab("pacientes")
+                    }}
+                  />
+                </TabsContent>
+
+              </Tabs>
+            </div>
+          </div>
         )}
+
+        {/* MODAL SALA */}
+        <SalaModal open={openSala} onClose={() => setOpenSala(false)} />
+
       </main>
     </div>
   )
