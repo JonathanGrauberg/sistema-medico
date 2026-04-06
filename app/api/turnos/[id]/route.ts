@@ -28,3 +28,24 @@ export async function PATCH(
     )
   }
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await prisma.turno.delete({
+      where: {
+        id: params.id
+      }
+    })
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json(
+      { error: "Error al eliminar turno" },
+      { status: 500 }
+    )
+  }
+}

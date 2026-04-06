@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 
 import { AgendaMedicos } from "@/components/agenda-medicos"
+import { TurnoModal } from "@/components/turno-modal" // ✅ IMPORTANTE
 
 const SidebarItem = ({ icon: Icon, text, active = false, onClick }: any) => (
   <li
@@ -27,6 +28,11 @@ const SidebarItem = ({ icon: Icon, text, active = false, onClick }: any) => (
 export default function TurnosPage() {
   const [fechaBase, setFechaBase] = useState(new Date())
   const [search, setSearch] = useState("")
+
+  // 🔥 NUEVO ESTADO
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedFecha, setSelectedFecha] = useState<string | null>(null)
+  const [turnos, setTurnos] = useState<any[]>([]) // para refetch
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -107,16 +113,53 @@ export default function TurnosPage() {
         </div>
 
         {/* Agenda */}
-        <AgendaMedicos fechaBase={fechaBase} search={search} />
+        <AgendaMedicos
+          fechaBase={fechaBase}
+          search={search}
+
+          // 🔥 CLICK EN SLOT VACÍO
+          onSlotClick={(dia: any, hora: string, turno: any) => {
+            if (!turno) {
+              const fechaCompleta = `${dia.dateKey}T${hora}:00`
+              setSelectedFecha(fechaCompleta)
+              setModalOpen(true)
+            }
+          }}
+
+          // 🔥 CLICK EN TURNO EXISTENTE (ELIMINAR)
+          onTurnoClick={async (turno: any) => {
+            if (confirm("Eliminar turno?")) {
+              await fetch(`/api/turnos/${turno.id}`, {
+                method: "DELETE"
+              })
+
+              fetch("/api/turnos")
+                .then(res => res.json())
+                .then(setTurnos)
+            }
+          }}
+        />
       </main>
 
       {/* ➕ Botón flotante */}
       <button
-        onClick={() => alert("Crear turno (próximo paso)")}
+        onClick={() => setModalOpen(true)}
         className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-[#39B5B5] text-white text-2xl shadow-lg hover:scale-105 transition"
       >
         +
       </button>
+
+      {/* 🔥 MODAL */}
+      <TurnoModal
+        open={modalOpen}
+        fecha={selectedFecha}
+        onClose={() => setModalOpen(false)}
+        onCreated={() => {
+          fetch("/api/turnos")
+            .then(res => res.json())
+            .then(setTurnos)
+        }}
+      />
     </div>
   )
 }

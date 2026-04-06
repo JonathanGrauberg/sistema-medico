@@ -5,9 +5,17 @@ import { useEffect, useState } from "react"
 type Props = {
   fechaBase: Date
   search: string
+  onSlotClick?: (dia: any, hora: string, turno: any) => void
+  onTurnoClick?: (turno: any) => void
 }
 
-export function AgendaMedicos({ fechaBase, search }: Props) {
+export function AgendaMedicos({
+  fechaBase,
+  search,
+  onSlotClick,
+  onTurnoClick
+}: Props) {
+
   const [turnos, setTurnos] = useState<any[]>([])
 
   useEffect(() => {
@@ -56,7 +64,7 @@ export function AgendaMedicos({ fechaBase, search }: Props) {
 
   // ================= HORARIOS =================
 
-  const horarios: string [] =[]
+  const horarios: string[] = []
   for (let h = 8; h <= 18; h++) {
     for (let m = 0; m < 60; m += 15) {
       horarios.push(
@@ -127,11 +135,18 @@ export function AgendaMedicos({ fechaBase, search }: Props) {
                     {hora}
                   </div>
 
-                  <div className="flex-1 p-1">
+                  {/* SLOT */}
+                  <div
+                    className="flex-1 p-1 cursor-pointer"
+                    onClick={() => onSlotClick?.(dia, hora, turno)}
+                  >
                     {turno ? (
                       <div
-                        onClick={() => alert(`Turno ID: ${turno.id}`)}
-                        className={`h-full rounded px-2 py-1 text-white text-xs cursor-pointer ${getColor(
+                        onClick={(e) => {
+                          e.stopPropagation() // 🔥 evita doble click
+                          onTurnoClick?.(turno)
+                        }}
+                        className={`h-full rounded px-2 py-1 text-white text-xs ${getColor(
                           turno.estado
                         )}`}
                       >
@@ -144,7 +159,7 @@ export function AgendaMedicos({ fechaBase, search }: Props) {
                         </div>
                       </div>
                     ) : (
-                      <div className="h-full bg-gray-100 rounded opacity-40"></div>
+                      <div className="h-full bg-gray-100 rounded opacity-40 hover:opacity-70 transition" />
                     )}
                   </div>
                 </div>
