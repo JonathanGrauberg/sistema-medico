@@ -1,41 +1,46 @@
+import "dotenv/config"
 import * as XLSX from "xlsx"
-import { PrismaClient } from "@prisma/client"
+import { prisma } from "../lib/prisma"
 
-const prisma = new PrismaClient()
+console.log("SCRIPT DB:", process.env.DATABASE_URL)
 
 async function main() {
-  const workbook = XLSX.readFile("./Nomenclador sistema medico.xlsx")
+  const workbook = XLSX.readFile("data/nomenclador.xlsx")
   const sheetName = workbook.SheetNames[0]
   const sheet = workbook.Sheets[sheetName]
 
-  const rows: any[] = XLSX.utils.sheet_to_json(sheet)
+  const data: any[] = XLSX.utils.sheet_to_json(sheet)
 
-  console.log("Filas encontradas:", rows.length)
+  console.log("Filas encontradas:", data.length)
 
-  const data = rows.map((row) => ({
-    codigo: String(row.CODIGO || row.codigo || "").trim(),
-    practica: String(row.PRACTICA || row.practica || "").trim()
-  }))
-
-  // limpiar vacíos
-  const clean = data.filter(
-    (d) => d.codigo.length > 0 && d.practica.length > 0
-  )
-
-  console.log("Filas limpias:", clean.length)
-
-  // 🔥 BORRAR TODO (opcional)
+  // 🔥 limpiar tabla antes
   await prisma.nomenclador.deleteMany()
 
-  // 🔥 INSERTAR
-  await prisma.nomenclador.createMany({
-    data: clean,
-    skipDuplicates: true
-  })
+  for (const row of data) {
+    // 🔥 COLUMNAS REALES DEL EXCEL
+    const codigo = String(row["Código"] || "").trim()
+    const practica = String(row["Detalle Prestación"] || "").trim()
 
-  console.log("✅ Importación completa")
+    // DEBUG (podés dejarlo o sacarlo después)
+    console.log("FILA PROCESADA:", { codigo, practica })
+
+    if (!codigo || !practica) continue
+
+    await prisma.nomenclador.create({
+      data: {
+        codigo,
+        practica
+      }
+    })
+  }
+
+  console.log("✅ Nomenclador importado correctamente")
 }
 
 main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect())
+  .catch(e => {
+    console.error("ERROR:", e)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })

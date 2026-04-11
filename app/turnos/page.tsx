@@ -55,7 +55,11 @@ export default function TurnosPage() {
           <SidebarItem icon={Calendar} text="AGENDA" active />
           <SidebarItem icon={Users} text="PACIENTES" />
           <SidebarItem icon={FileText} text="ESTUDIOS" />
-          <SidebarItem icon={FileText} text="NOMENCLADOR" />
+          <SidebarItem 
+            icon={FileText}
+            text="NOMENCLADOR"  
+            onClick={() => (window.location.href ="/nomenclador")}
+            />
           <SidebarItem icon={Settings} text="CONFIGURACIÓN" />
           <SidebarItem
             icon={LogOut}

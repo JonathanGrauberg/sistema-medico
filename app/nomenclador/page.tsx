@@ -1,124 +1,117 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Search } from "lucide-react"
 
-// 🔥 TIPADO
 type NomencladorItem = {
+  id: string
   codigo: string
-  detalle: string
+  practica: string
 }
 
 export default function NomencladorPage() {
-  const [data, setData] = useState<NomencladorItem[]>([])
   const [search, setSearch] = useState("")
+  const [data, setData] = useState<NomencladorItem[]>([])
+  const [loading, setLoading] = useState(false)
 
-  // 🔥 MOCK (después lo conectamos a API)
   useEffect(() => {
-    setData([
-      {
-        codigo: "019001",
-        detalle: "Biopsia de nervio o músculo"
-      },
-      {
-        codigo: "019002",
-        detalle: "Punciones de reservorios"
-      },
-      {
-        codigo: "019003",
-        detalle: "Bloqueos por dolor"
-      },
-      {
-        codigo: "019101",
-        detalle: "Drenajes lumbares externos"
+    const delay = setTimeout(() => {
+      if (search.length < 2) {
+        setData([])
+        return
       }
-    ])
-  }, [])
 
-  // 🔍 FILTRO
-  const filtered = data.filter(item => {
-    const q = search.toLowerCase()
-    return (
-      item.codigo.toLowerCase().includes(q) ||
-      item.detalle.toLowerCase().includes(q)
-    )
-  })
+      setLoading(true)
+
+      fetch(`/api/nomenclador?search=${search}`)
+        .then(res => res.json())
+        .then(setData)
+        .finally(() => setLoading(false))
+    }, 300) // debounce
+
+    return () => clearTimeout(delay)
+  }, [search])
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background">
 
-      <div className="max-w-5xl mx-auto space-y-6">
+      <main className="max-w-5xl mx-auto px-4 py-10 space-y-6">
 
         {/* HEADER */}
         <div>
-          <h1 className="text-2xl font-bold">
-            Nomenclador
+          <h1 className="text-3xl font-bold">
+            Nomenclador Nacional
           </h1>
           <p className="text-muted-foreground text-sm">
-            Listado de prácticas médicas
+            Buscá prácticas por código o descripción
           </p>
         </div>
 
-        {/* BUSCADOR */}
+        {/* 🔍 BUSCADOR PILL */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
           <Input
-            placeholder="Buscar por código o práctica..."
+            placeholder="Buscar código o práctica..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-10 pr-4 py-6 rounded-full shadow-sm"
           />
         </div>
 
-        {/* TABLA */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Resultados ({filtered.length})
-            </CardTitle>
-          </CardHeader>
+        {/* INFO */}
+        {search.length >= 2 && (
+          <div className="text-sm text-muted-foreground">
+            {loading
+              ? "Buscando..."
+              : `${data.length} resultado${data.length !== 1 ? "s" : ""}`}
+          </div>
+        )}
 
-          <CardContent>
-            <div className="border rounded-lg overflow-hidden">
+        {/* RESULTADOS */}
+        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
 
-              {/* HEADER TABLA */}
-              <div className="grid grid-cols-3 bg-muted/50 p-3 text-sm font-medium">
-                <div>Código</div>
-                <div className="col-span-2">Detalle</div>
-              </div>
+          {data.map(item => (
+            <div
+              key={item.id}
+              className="rounded-xl border bg-white p-4 shadow-sm hover:shadow-md transition"
+            >
+              <div className="flex justify-between items-start gap-4">
 
-              {/* BODY */}
-              <div className="max-h-[500px] overflow-y-auto divide-y">
+                {/* CODIGO */}
+                <div className="min-w-[100px]">
+                  <span className="text-xs text-muted-foreground">
+                    Código
+                  </span>
+                  <p className="font-semibold text-[#39B5B5]">
+                    {item.codigo}
+                  </p>
+                </div>
 
-                {filtered.map((item, i) => (
-                  <div
-                    key={i}
-                    className="grid grid-cols-3 p-3 text-sm hover:bg-muted/40 transition"
-                  >
-                    <div className="font-medium">
-                      {item.codigo}
-                    </div>
-
-                    <div className="col-span-2 text-muted-foreground">
-                      {item.detalle}
-                    </div>
-                  </div>
-                ))}
-
-                {filtered.length === 0 && (
-                  <div className="p-6 text-center text-muted-foreground">
-                    No se encontraron resultados
-                  </div>
-                )}
+                {/* PRACTICA */}
+                <div className="flex-1">
+                  <span className="text-xs text-muted-foreground">
+                    Práctica
+                  </span>
+                  <p className="text-sm leading-snug">
+                    {item.practica}
+                  </p>
+                </div>
 
               </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
 
-      </div>
+          {/* EMPTY */}
+          {!loading && data.length === 0 && search.length > 1 && (
+            <div className="text-center py-10 text-muted-foreground">
+              No se encontraron resultados
+            </div>
+          )}
+        </div>
+
+      </main>
     </div>
   )
 }

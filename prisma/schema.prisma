@@ -187,6 +187,8 @@ model Nomenclador {
   id        String @id @default(cuid())
   codigo    String
   practica  String
+
+  @@index([codigo])
 }
 
 //////////////////////////////////////////////////////

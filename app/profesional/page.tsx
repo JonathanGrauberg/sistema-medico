@@ -110,7 +110,8 @@ export default function ProfesionalPage() {
           <QuickCard
             icon={FileText}
             title="Nomenclador"
-            desc="Próximamente"
+            desc="Ver códigos y prácticas"
+            onClick={() => router.push("/nomenclador")}
           />
 
           <QuickCard
