@@ -15,7 +15,6 @@ export function AgendaMedicos({
   onSlotClick,
   onTurnoClick
 }: Props) {
-
   const [turnos, setTurnos] = useState<any[]>([])
 
   useEffect(() => {
@@ -24,142 +23,113 @@ export function AgendaMedicos({
       .then(setTurnos)
   }, [])
 
-  // ================= FILTRO =================
-
   const turnosFiltrados = turnos.filter(t =>
     `${t.paciente?.nombre} ${t.paciente?.apellido}`
       .toLowerCase()
       .includes(search.toLowerCase())
   )
 
-  // ================= SEMANA =================
-
   const getSemana = (baseDate: Date) => {
     const dia = baseDate.getDay()
     const lunes = new Date(baseDate)
-
     lunes.setDate(baseDate.getDate() - (dia === 0 ? 6 : dia - 1))
-
     const dias = []
+    const nombres = ["Lun", "Mar", "Mié", "Jue", "Vie"] // Nombres más cortos
 
     for (let i = 0; i < 5; i++) {
       const fecha = new Date(lunes)
       fecha.setDate(lunes.getDate() + i)
-
       const year = fecha.getFullYear()
       const month = String(fecha.getMonth() + 1).padStart(2, "0")
       const day = String(fecha.getDate()).padStart(2, "0")
 
       dias.push({
-        nombre: ["Lun", "Mar", "Mié", "Jue", "Vie"][i],
+        nombre: nombres[i],
+        numero: fecha.getDate(),
         fechaStr: fecha.toLocaleDateString(),
         dateKey: `${year}-${month}-${day}`
       })
     }
-
     return dias
   }
 
   const diasSemana = getSemana(fechaBase)
 
-  // ================= HORARIOS =================
-
   const horarios: string[] = []
   for (let h = 8; h <= 18; h++) {
     for (let m = 0; m < 60; m += 15) {
-      horarios.push(
-        `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
-      )
+      horarios.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
     }
   }
-
-  // ================= BUSCAR TURNO =================
 
   const getTurno = (dateKey: string, time: string) => {
     return turnosFiltrados.find(t => {
       const d = new Date(t.fecha)
-
-      const localDate = `${d.getFullYear()}-${String(
-        d.getMonth() + 1
-      ).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-
-      const localTime = `${String(d.getHours()).padStart(2, "0")}:${String(
-        d.getMinutes()
-      ).padStart(2, "0")}`
-
+      const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+      const localTime = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
       return localDate === dateKey && localTime === time
     })
   }
 
-  // ================= COLOR =================
-
   const getColor = (estado: string) => {
     switch (estado) {
-      case "CONFIRMADO":
-        return "bg-[#39B5B5]"
-      case "PENDIENTE":
-        return "bg-yellow-500"
-      case "EN_SALA":
-        return "bg-blue-500"
-      case "ATENDIDO":
-        return "bg-green-600"
-      case "CANCELADO":
-        return "bg-red-500"
-      default:
-        return "bg-gray-300"
+      case "CONFIRMADO": return "bg-[#39B5B5]"
+      case "PENDIENTE": return "bg-amber-400"
+      case "EN_SALA": return "bg-sky-500"
+      case "ATENDIDO": return "bg-emerald-600"
+      case "CANCELADO": return "bg-rose-500"
+      default: return "bg-slate-400"
     }
   }
 
   return (
-    <div className="flex-1 flex overflow-x-auto p-4 gap-4">
-
+    // Reducimos gap a 2 y padding lateral para que entren las 5 columnas
+    <div className="flex h-full gap-2 pb-2 overflow-x-hidden">
       {diasSemana.map(dia => (
         <div
           key={dia.dateKey}
-          className="flex-1 min-w-[220px] bg-white rounded border flex flex-col"
+          // Bajamos min-w a 180px para asegurar que entren los 5 días en pantallas estándar
+          className="flex-1 min-w-[180px] bg-white/20 backdrop-blur-md border border-white/40 rounded-[2rem] flex flex-col overflow-hidden shadow-sm"
         >
-          {/* HEADER */}
-          <div className="p-3 border-b font-medium text-sm">
-            {dia.nombre} {dia.fechaStr}
+          {/* HEADER DÍA */}
+          <div className="p-3 border-b border-white/10 bg-white/30 text-center">
+            <p className="text-[9px] uppercase tracking-tighter font-black text-[#1e5e5e] opacity-70">{dia.nombre}</p>
+            <p className="text-xl font-black text-slate-800 leading-none">{dia.numero}</p>
           </div>
 
-          {/* HORAS */}
-          <div className="flex-1 overflow-y-auto">
+          {/* HORAS CON SCROLL INTERNO */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1.5">
             {horarios.map(hora => {
               const turno = getTurno(dia.dateKey, hora)
 
               return (
-                <div key={hora} className="flex border-b min-h-[45px]">
-
-                  <div className="w-14 text-xs text-gray-500 flex items-center justify-center">
+                <div key={hora} className="flex gap-1.5 min-h-[40px]">
+                  {/* Hora miniatura - ACTUALIZADA PARA VISIBILIDAD */}
+                  <div className="w-10 text-[10px] font-bold text-black opacity-50 flex items-start pt-1.5 antialiased">
                     {hora}
                   </div>
 
-                  {/* SLOT */}
                   <div
-                    className="flex-1 p-1 cursor-pointer"
+                    className="flex-1 rounded-xl relative"
                     onClick={() => onSlotClick?.(dia, hora, turno)}
                   >
                     {turno ? (
                       <div
                         onClick={(e) => {
-                          e.stopPropagation() // 🔥 evita doble click
+                          e.stopPropagation()
                           onTurnoClick?.(turno)
                         }}
-                        className={`h-full rounded px-2 py-1 text-white text-xs ${getColor(
-                          turno.estado
-                        )}`}
+                        className={`absolute inset-0 rounded-lg p-1.5 text-white shadow-sm cursor-pointer ${getColor(turno.estado)}`}
                       >
-                        <div className="font-semibold truncate">
-                          {turno.paciente?.apellido},{" "}
-                          {turno.paciente?.nombre}
-                        </div>
-                        <div className="text-[10px] opacity-80">
-                          {turno.medico?.nombre}
-                        </div>
+                        <p className="font-bold text-[10px] leading-tight truncate">
+                          {turno.paciente?.apellido}
+                        </p>
+                        <p className="text-[8px] opacity-90 truncate">
+                          {hora}
+                        </p>
                       </div>
                     ) : (
-                      <div className="h-full bg-gray-100 rounded opacity-40 hover:opacity-70 transition" />
+                      <div className="h-full w-full border border-dashed border-white/30 rounded-lg bg-white/5 hover:bg-white/20 transition-colors" />
                     )}
                   </div>
                 </div>
@@ -168,6 +138,16 @@ export function AgendaMedicos({
           </div>
         </div>
       ))}
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(57, 181, 181, 0.2);
+          border-radius: 10px;
+        }
+      `}</style>
     </div>
   )
 }

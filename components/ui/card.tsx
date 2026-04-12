@@ -1,5 +1,4 @@
 import * as React from 'react'
-
 import { cn } from '@/lib/utils'
 
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
@@ -7,7 +6,9 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card"
       className={cn(
-        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm',
+        /* 🔥 Glassmorphism: Fondo blanco traslúcido, blur y borde sutil */
+        'bg-white/40 backdrop-blur-md border-white/40 shadow-[0_8px_32px_0_rgba(31,38,135,0.05)]',
+        'flex flex-col gap-6 rounded-[2rem] border py-6',
         className,
       )}
       {...props}
@@ -32,7 +33,8 @@ function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card-title"
-      className={cn('leading-none font-semibold', className)}
+      /* 🔥 Texto un poco más oscuro para que se lea bien sobre el blur */
+      className={cn('leading-none font-bold text-slate-800 tracking-tight', className)}
       {...props}
     />
   )
@@ -42,7 +44,8 @@ function CardDescription({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card-description"
-      className={cn('text-muted-foreground text-sm', className)}
+      /* 🔥 Verde oscuro para mantener la identidad visual de ECOEF */
+      className={cn('text-[#1e5e5e]/80 text-sm font-medium', className)}
       {...props}
     />
   )
@@ -65,7 +68,7 @@ function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card-content"
-      className={cn('px-6', className)}
+      className={cn('px-6 text-slate-700', className)}
       {...props}
     />
   )
