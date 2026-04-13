@@ -36,16 +36,16 @@ export default function NomencladorPage() {
     <div className="space-y-8 h-full flex flex-col">
 
       {/* 🔝 HEADER GLASS */}
-      <header className="flex-none p-8 bg-white/40 backdrop-blur-md border border-white/40 rounded-[2.5rem] shadow-sm">
+      <header className="flex-none h-20 bg-white/40 backdrop-blur-md border border-white/40 rounded-[2rem] flex justify-between items-center px-8 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-[#39B5B5]/20 rounded-2xl">
             <BookOpen className="w-8 h-8 text-[#39B5B5]" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
               Nomenclador Nacional
             </h1>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-[#1e5e5e] font-extrabold opacity-70">
+            <p className="text-[10px] uppercase tracking-widest text-[#1e5e5e] font-bold opacity-60">
               Vademécum de Prácticas Médicas
             </p>
           </div>
