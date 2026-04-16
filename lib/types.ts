@@ -70,3 +70,4 @@ export interface HistoriaClinica {
   createdAt: Date
   updatedAt: Date
 }
+

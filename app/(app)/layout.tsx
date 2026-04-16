@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Calendar, Users, FileText, BarChart3, Timer, Menu } from "lucide-react"
+import { Calendar, Users, FileText, BarChart3, Timer, Menu, Album } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { SalaSheet } from "@/components/sala-sheet"
 
@@ -10,8 +10,9 @@ const menu = [
   { label: "Dashboard", icon: BarChart3, href: "/dashboard" },
   { label: "Turnos", icon: Calendar, href: "/turnos" },
   { label: "Pacientes", icon: Users, href: "/pacientes" },
-  { label: "Nomenclador", icon: FileText, href: "/nomenclador" },
+  { label: "Nomenclador", icon: Album, href: "/nomenclador" },
   { label: "Sala", icon: Timer, href: "/sala", isModal: true },
+  { label: "Generar Informe", icon: FileText, href: "/reportes"},
 ]
 
 export default function AppLayout({ children }: { children: ReactNode }) {
