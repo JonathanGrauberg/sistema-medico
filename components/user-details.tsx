@@ -1,10 +1,31 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Trash2, Loader2, Upload, User, Stethoscope } from "lucide-react"
+import {
+  ArrowLeft,
+  Trash2,
+  Loader2,
+  Upload,
+  User,
+  Stethoscope
+} from "lucide-react"
+
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card"
+
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs"
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,19 +37,35 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+
 import { FileTable } from "@/components/file-table"
 import { FileDropzone } from "@/components/file-dropzone"
 import { HistoriaClinicaView } from "@/components/historia-clinica-form"
+
 import { toast } from "sonner"
-import type { User as UserType, FileRecord, HistoriaClinicaEntry } from "@/lib/types"
+
+import type {
+  User as UserType,
+  FileRecord,
+  HistoriaClinicaEntry
+} from "@/lib/types"
+
+type Role = "MEDICO" | "SECRETARIA"
 
 interface UserDetailsProps {
   user: UserType
+  role: Role
   onBack?: () => void
   onUserDeleted?: () => void
 }
 
-export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
+export function UserDetails({
+  user,
+  role, // 🔥 IMPORTANTE
+  onBack,
+  onUserDeleted
+}: UserDetailsProps) {
+
   const [files, setFiles] = useState<FileRecord[]>([])
   const [historiaEntries, setHistoriaEntries] = useState<HistoriaClinicaEntry[]>([])
   const [isDeleting, setIsDeleting] = useState(false)
@@ -47,17 +84,29 @@ export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
     }
   }
 
+  // 🔥 traer historia clínica
+  const fetchHistorias = async () => {
+    try {
+      const res = await fetch(`/api/historias?pacienteId=${user.id}`)
+      const data = await res.json()
+      setHistoriaEntries(data || [])
+    } catch {
+      toast.error("Error cargando historia clínica")
+    }
+  }
+
   useEffect(() => {
     fetchFiles()
     fetchHistorias()
   }, [user.id])
 
   const handleFileDeleted = (fileId: string) => {
-    setFiles(files.filter(f => f.id !== fileId))
+    setFiles(prev => prev.filter(f => f.id !== fileId))
   }
 
   const handleDeleteUser = async () => {
     setIsDeleting(true)
+
     setTimeout(() => {
       toast.success("Usuario eliminado")
       onUserDeleted?.()
@@ -97,9 +146,7 @@ export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
       setNewEstudios([])
       setNewInformes([])
 
-      // 🔥 recargar desde DB
       await fetchFiles()
-
     } catch {
       toast.error("Error al subir archivos")
     } finally {
@@ -117,19 +164,10 @@ export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
     )
   }
 
-  const fetchHistorias = async () => {
-  try {
-    const res = await fetch(`/api/historias?pacienteId=${user.id}`)
-    const data = await res.json()
-    setHistoriaEntries(data || [])
-  } catch {
-    toast.error("Error cargando historia clínica")
-  }
-}
-
   const estudios = files.filter(f => f.tipo === "ESTUDIO")
   const informes = files.filter(f => f.tipo === "INFORME")
 
+  // 👇 ACÁ YA ENTRÁS AL RETURN
   return (
     <Card>
       <CardHeader>
@@ -208,11 +246,7 @@ export function UserDetails({ user, onBack, onUserDeleted }: UserDetailsProps) {
           </TabsContent>
 
           <TabsContent value="historia" className="mt-4">
-            <HistoriaClinicaView 
-              entries={historiaEntries} 
-              userId={user.id}
-              onEntryAdded={handleHistoriaEntryAdded}
-            />
+            <HistoriaClinicaView userId={user.id} />
           </TabsContent>
 
           <TabsContent value="subir" className="mt-4 space-y-4">

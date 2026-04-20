@@ -64,19 +64,53 @@ export function SalaSheet({ open, onClose }: Props) {
             </div>
           ) : (
             turnos.map((t) => (
-              <div key={t.id} className="bg-white/40 border border-white/60 p-5 rounded-[2rem] shadow-sm flex items-center justify-between hover:bg-white/70 transition-all group">
-                <div>
-                  <p className="font-bold text-slate-900 group-hover:text-black">
-                    {t.paciente?.apellido}, {t.paciente?.nombre}
-                  </p>
-                  <p className="text-[10px] font-black text-slate-500 uppercase">
-                    Llegada: <span className="text-[#39B5B5]">
-                      {new Date(t.fecha).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </p>
-                </div>
-                <div className="w-3 h-3 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.4)]" />
-              </div>
+              <div key={t.id} className="bg-white/40 border border-white/60 p-5 rounded-[2rem] shadow-sm hover:bg-white/70 transition-all group space-y-3">
+  
+  <div className="flex justify-between items-center">
+    <div>
+      <p className="font-bold text-slate-900">
+        {t.paciente?.apellido}, {t.paciente?.nombre}
+      </p>
+      <p className="text-[10px] font-black text-slate-500 uppercase">
+        Llegada:{" "}
+        <span className="text-[#39B5B5]">
+          {new Date(t.fecha).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </p>
+    </div>
+
+    <div className="w-3 h-3 bg-emerald-500 rounded-full" />
+  </div>
+
+  {/* 🔥 ACCIONES */}
+  <div className="flex gap-2">
+    <button
+      onClick={async () => {
+        await fetch(`/api/turnos/${t.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ estado: "ATENDIDO" }),
+        })
+        setTurnos((prev) => prev.filter((x) => x.id !== t.id))
+      }}
+      className="flex-1 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold"
+    >
+      Atender
+    </button>
+
+    <button
+      onClick={() => {
+        router.push(`/pacientes/${t.pacienteId}`)
+        onClose()
+      }}
+      className="flex-1 py-2 rounded-xl bg-white border text-xs font-bold"
+    >
+      Ver
+    </button>
+  </div>
+</div>
             ))
           )}
         </div>

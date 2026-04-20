@@ -211,6 +211,13 @@ export function HistoriaClinicaForm({
   )
 }
 
+interface HistoriaClinicaFormProps {
+  userId: string
+  onEntryAdded: (entry: HistoriaClinicaEntry | null) => void
+  editingEntry?: HistoriaClinicaEntry
+  onEntryUpdated?: (entry: HistoriaClinicaEntry) => void
+}
+
 interface HistoriaClinicaViewProps {
   userId: string
   readOnly?: boolean
@@ -218,6 +225,7 @@ interface HistoriaClinicaViewProps {
 
 export function HistoriaClinicaView({ userId, readOnly = false }: HistoriaClinicaViewProps) {
   const [localEntries, setLocalEntries] = useState<HistoriaClinicaEntry[]>([])
+  const [loading, setLoading] = useState(true)
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString("es-AR", {
@@ -229,19 +237,22 @@ export function HistoriaClinicaView({ userId, readOnly = false }: HistoriaClinic
 
   const fetchHistorias = async () => {
     try {
+      setLoading(true)
       const res = await fetch(`/api/historias?pacienteId=${userId}`)
       const data = await res.json()
       setLocalEntries(data || [])
     } catch {
       toast.error("Error cargando historia clínica")
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
-  if (userId) {
-    fetchHistorias()
-  }
-}, [userId])
+    if (userId) {
+      fetchHistorias()
+    }
+  }, [userId])
 
   const handleEntryAdded = async () => {
     await fetchHistorias()
@@ -253,31 +264,53 @@ export function HistoriaClinicaView({ userId, readOnly = false }: HistoriaClinic
 
   return (
     <div className="space-y-6">
+
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Historia Clinica</h3>
+          <h3 className="text-lg font-semibold">Historia Clínica</h3>
           <p className="text-sm text-muted-foreground">
             {localEntries.length} registro{localEntries.length !== 1 ? "s" : ""}
           </p>
         </div>
+
         {!readOnly && (
-          <HistoriaClinicaForm userId={userId} onEntryAdded={handleEntryAdded} />
+          <HistoriaClinicaForm
+            userId={userId}
+            onEntryAdded={handleEntryAdded}
+          />
         )}
       </div>
 
-      {localEntries.length === 0 ? (
+      {/* LOADING */}
+      {loading ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Cargando historia clínica...
+          </CardContent>
+        </Card>
+      ) : localEntries.length === 0 ? (
+
+        /* EMPTY */
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <CalendarIcon className="h-12 w-12 text-muted-foreground/50" />
             <p className="mt-4 text-muted-foreground">
-              No hay registros en la historia clinica
+              No hay registros en la historia clínica
             </p>
           </CardContent>
         </Card>
+
       ) : (
+
+        /* LISTA */
         <div className="space-y-6 border-l pl-4">
           {localEntries
-            .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+            .sort(
+              (a, b) =>
+                new Date(b.fecha).getTime() -
+                new Date(a.fecha).getTime()
+            )
             .map((entry) => (
               <Card
                 key={entry.id}
@@ -314,18 +347,24 @@ export function HistoriaClinicaView({ userId, readOnly = false }: HistoriaClinic
                 <CardContent className="space-y-4 text-sm">
                   <div>
                     <p className="font-medium">Diagnóstico</p>
-                    <p className="text-muted-foreground">{entry.diagnostico}</p>
+                    <p className="text-muted-foreground">
+                      {entry.diagnostico}
+                    </p>
                   </div>
 
                   <div>
                     <p className="font-medium">Tratamiento</p>
-                    <p className="text-muted-foreground">{entry.tratamiento}</p>
+                    <p className="text-muted-foreground">
+                      {entry.tratamiento}
+                    </p>
                   </div>
 
                   {entry.observaciones && (
                     <div>
                       <p className="font-medium">Observaciones</p>
-                      <p className="text-muted-foreground">{entry.observaciones}</p>
+                      <p className="text-muted-foreground">
+                        {entry.observaciones}
+                      </p>
                     </div>
                   )}
                 </CardContent>

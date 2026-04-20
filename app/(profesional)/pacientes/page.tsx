@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { Search, Plus, Users } from "lucide-react"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -12,13 +13,20 @@ import { UserForm } from "@/components/user-form"
 
 import type { User } from "@/lib/types"
 
+type Role = "MEDICO" | "SECRETARIA"
+
 export default function PacientesPage() {
+  const pathname = usePathname()
+
+  const role: Role = pathname.startsWith("/secretaria")
+    ? "SECRETARIA"
+    : "MEDICO"
+
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [activeTab, setActiveTab] = useState("pacientes")
   const [searchQuery, setSearchQuery] = useState("")
   const [users, setUsers] = useState<User[]>([])
 
-  // 🔥 FETCH PACIENTES
   useEffect(() => {
     fetch("/api/pacientes")
       .then(res => res.json())
@@ -26,7 +34,6 @@ export default function PacientesPage() {
       .catch(err => console.error(err))
   }, [])
 
-  // 🔍 FILTRO
   const filteredUsers = users.filter(user => {
     const q = searchQuery.toLowerCase()
     return (
@@ -39,7 +46,6 @@ export default function PacientesPage() {
   return (
     <div className="space-y-8">
 
-      {/* HEADER */}
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Users className="w-6 h-6 text-[#39B5B5]" />
@@ -50,10 +56,10 @@ export default function PacientesPage() {
         </p>
       </div>
 
-      {/* DETALLE USUARIO */}
       {selectedUser ? (
         <UserDetails
           user={selectedUser}
+          role={role}
           onBack={() => setSelectedUser(null)}
           onUserDeleted={() => {
             setUsers(prev => prev.filter(u => u.id !== selectedUser.id))
@@ -64,18 +70,20 @@ export default function PacientesPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
 
           <TabsList className="grid w-full grid-cols-2">
+
             <TabsTrigger value="pacientes">
               <Users className="mr-2 h-4 w-4" />
               Pacientes
             </TabsTrigger>
 
+            {/* 🔥 SECRETARIA TAMBIÉN PUEDE CREAR PACIENTE */}
             <TabsTrigger value="crear">
               <Plus className="mr-2 h-4 w-4" />
               Nuevo
             </TabsTrigger>
+
           </TabsList>
 
-          {/* LISTA */}
           <TabsContent value="pacientes" className="mt-6">
             <Card>
               <CardHeader>
@@ -84,7 +92,6 @@ export default function PacientesPage() {
 
               <CardContent className="space-y-4">
 
-                {/* BUSCADOR */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -95,7 +102,6 @@ export default function PacientesPage() {
                   />
                 </div>
 
-                {/* LISTA */}
                 {filteredUsers.length === 0 ? (
                   <div className="text-center py-10 text-muted-foreground">
                     Sin resultados
@@ -129,7 +135,6 @@ export default function PacientesPage() {
             </Card>
           </TabsContent>
 
-          {/* CREAR */}
           <TabsContent value="crear" className="mt-6">
             <UserForm
               onUserCreated={(newUser) => {
