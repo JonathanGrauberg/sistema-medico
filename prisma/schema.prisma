@@ -16,9 +16,9 @@ model Tenant {
   nombre    String
   createdAt DateTime @default(now())
 
-  users     User[]
-  pacientes Paciente[]
-  turnos    Turno[]
+  users         User[]
+  pacientes     Paciente[]
+  turnos        Turno[]
   preparaciones Preparacion[]
 }
 
@@ -26,22 +26,37 @@ model Tenant {
 // 👤 USUARIOS DEL SISTEMA (MEDICO / ADMIN / SECRETARIA)
 //////////////////////////////////////////////////////
 
-model User {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+model Medico {
+  id String @id @default(cuid())
 
-  nombre    String
-  apellido  String
-  email     String   @unique
-  password  String
-  rol       Role
+  tenantId String
+
+  nombre   String
+  apellido String
+
+  email String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  turnos        Turno[]
-  historias     HistoriaClinica[]
+  turnos Turno[]
+}
+
+model User {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  nombre   String
+  apellido String
+  email    String @unique
+  password String
+  rol      Role
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  historias HistoriaClinica[]
 
   @@index([tenantId])
 }
@@ -51,17 +66,17 @@ model User {
 //////////////////////////////////////////////////////
 
 model Paciente {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  nombre    String
-  apellido  String
-  dni       String
+  nombre   String
+  apellido String
+  dni      String
 
-  telefono  String?
-  email     String?
+  telefono String?
+  email    String?
 
   localidad     String?
   obraSocial    String?
@@ -73,9 +88,9 @@ model Paciente {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  archivos  Archivo[]
-  historias HistoriaClinica[]
-  turnos    Turno[]
+  archivos     Archivo[]
+  historias    HistoriaClinica[]
+  turnos       Turno[]
   credenciales Credencial[]
 
   @@unique([tenantId, dni])
@@ -87,18 +102,18 @@ model Paciente {
 //////////////////////////////////////////////////////
 
 model Archivo {
-  id          String   @id @default(cuid())
-  pacienteId  String
-  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  pacienteId String
+  paciente   Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 
-  nombre      String
-  tipo        FileType
-  url         String
-  size        Int
-  mimeType    String
+  nombre   String
+  tipo     FileType
+  url      String
+  size     Int
+  mimeType String
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([pacienteId])
   @@index([tipo])
@@ -109,20 +124,20 @@ model Archivo {
 //////////////////////////////////////////////////////
 
 model HistoriaClinica {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  pacienteId  String
-  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  pacienteId String
+  paciente   Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 
-  medicoId    String
-  medico      User     @relation(fields: [medicoId], references: [id])
+  medicoId String
+  medico   User   @relation(fields: [medicoId], references: [id])
 
-  motivo         String
-  diagnostico    String
-  tratamiento    String
-  observaciones  String?
+  motivo        String
+  diagnostico   String
+  tratamiento   String
+  observaciones String?
 
-  fecha       DateTime @default(now())
+  fecha DateTime @default(now())
 
   @@index([pacienteId])
   @@index([medicoId])
@@ -133,29 +148,39 @@ model HistoriaClinica {
 //////////////////////////////////////////////////////
 
 model Turno {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  pacienteId  String
-  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  pacienteId String
+  medicoId   String
 
-  medicoId    String
-  medico      User     @relation(fields: [medicoId], references: [id])
+  fecha DateTime
 
-  fecha       DateTime
-  estado      TurnoEstado
-  ordenLlegada Int?
+  estado EstadoTurno @default(PENDIENTE)
 
-  notasSecretaria String?
-  notasMedico     String?
+  motivo   String?
+  practica String?
 
-  createdAt   DateTime @default(now())
+  observaciones String?
 
-  @@index([tenantId])
-  @@index([medicoId, fecha])
-  @@index([pacienteId])
+  duracionMin Int @default(30)
+
+  checkedIn Boolean @default(false)
+
+  obraSocial String?
+
+  coseguro Float?
+
+  pagado Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  paciente Paciente @relation(fields: [pacienteId], references: [id])
+
+  medico Medico @relation(fields: [medicoId], references: [id])
 }
 
 //////////////////////////////////////////////////////
@@ -163,9 +188,9 @@ model Turno {
 //////////////////////////////////////////////////////
 
 model Preparacion {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   nombre    String
   contenido String
@@ -178,12 +203,12 @@ model Preparacion {
 //////////////////////////////////////////////////////
 
 model Credencial {
-  id          String   @id @default(cuid())
-  pacienteId  String
-  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  pacienteId String
+  paciente   Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
 
-  codigo      String   @unique
-  createdAt   DateTime @default(now())
+  codigo    String   @unique
+  createdAt DateTime @default(now())
 
   @@index([pacienteId])
 }
@@ -193,9 +218,9 @@ model Credencial {
 //////////////////////////////////////////////////////
 
 model Nomenclador {
-  id        String @id @default(cuid())
-  codigo    String
-  practica  String
+  id       String @id @default(cuid())
+  codigo   String
+  practica String
 
   @@index([codigo])
 }
@@ -215,7 +240,7 @@ enum FileType {
   INFORME
 }
 
-enum TurnoEstado {
+enum EstadoTurno {
   PENDIENTE
   CONFIRMADO
   EN_SALA
