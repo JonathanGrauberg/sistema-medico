@@ -67,6 +67,9 @@ model Paciente {
   obraSocial    String?
   observaciones String?
 
+  username String?
+  password String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

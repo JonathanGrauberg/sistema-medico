@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils"
 const navItems = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/paciente", label: "Ver Estudios", icon: UserSearch },
-  { href: "/profesional", label: "Panel Profesional", icon: Settings },
+  { href: "/dashboard", label: "Panel Profesional", icon: Settings },
+  { href: "/secretaria", label: "Panel Secretaria", icon: Settings },
 ]
 
 export function Navbar() {

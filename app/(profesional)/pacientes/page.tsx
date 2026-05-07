@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
 import { UserDetails } from "@/components/user-details"
-import { UserForm } from "@/components/user-form"
+import { ProfessionalUserForm } from "@/components/profesional-user-form"
 
 import type { User } from "@/lib/types"
 
@@ -136,7 +136,7 @@ export default function PacientesPage() {
           </TabsContent>
 
           <TabsContent value="crear" className="mt-6">
-            <UserForm
+            <ProfessionalUserForm
               onUserCreated={(newUser) => {
                 setUsers(prev => [...prev, newUser])
                 setActiveTab("pacientes")

@@ -9,13 +9,41 @@ const TENANT_ID =
 // ─────────────────────────────────────────────
 // CREATE
 // ─────────────────────────────────────────────
+
 export async function POST(req: Request) {
+
   try {
+
     const body = await req.json()
+
+    // 🔥 validar DNI duplicado
+
+    const existing =
+      await prisma.paciente.findFirst({
+        where: {
+          tenantId: TENANT_ID,
+          dni: body.dni,
+        },
+      })
+
+    if (existing) {
+      return NextResponse.json(
+        {
+          error:
+            "Ya existe un paciente con ese DNI",
+        },
+        {
+          status: 400,
+        }
+      )
+    }
+
+    // 🔥 crear paciente
 
     const paciente =
       await prisma.paciente.create({
         data: {
+
           tenantId: TENANT_ID,
 
           nombre: body.nombre,
@@ -30,16 +58,28 @@ export async function POST(req: Request) {
 
           observaciones:
             body.observaciones,
+
+          // 🔥 credenciales
+
+          username: body.username,
+          password: body.password,
         },
       })
 
     return NextResponse.json(paciente)
+
   } catch (error) {
+
     console.error(error)
 
     return NextResponse.json(
-      { error: "Error al crear paciente" },
-      { status: 500 }
+      {
+        error:
+          "Error al crear paciente",
+      },
+      {
+        status: 500,
+      }
     )
   }
 }
@@ -47,8 +87,11 @@ export async function POST(req: Request) {
 // ─────────────────────────────────────────────
 // LIST
 // ─────────────────────────────────────────────
+
 export async function GET() {
+
   try {
+
     const pacientes =
       await prisma.paciente.findMany({
         orderBy: [
@@ -61,13 +104,22 @@ export async function GET() {
         ],
       })
 
-    return NextResponse.json(pacientes)
+    return NextResponse.json(
+      pacientes
+    )
+
   } catch (error) {
+
     console.error(error)
 
     return NextResponse.json(
-      { error: "Error al obtener pacientes" },
-      { status: 500 }
+      {
+        error:
+          "Error al obtener pacientes",
+      },
+      {
+        status: 500,
+      }
     )
   }
 }

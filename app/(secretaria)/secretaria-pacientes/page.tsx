@@ -24,7 +24,7 @@ import {
 
 import { Input } from "@/components/ui/input"
 
-import { UserForm } from "@/components/user-form"
+import { SecretariaUserForm } from "@/components/secretaria-user-form"
 
 import { SecretariaPatientDetails } from "@/components/secretaria-patient-details"
 
@@ -201,7 +201,7 @@ export default function SecretariaPacientesPage() {
           value="nuevo"
           className="mt-6"
         >
-          <UserForm
+          <SecretariaUserForm
             onUserCreated={(newUser) => {
               setUsers((prev) => [
                 ...prev,

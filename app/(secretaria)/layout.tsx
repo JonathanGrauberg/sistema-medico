@@ -20,7 +20,7 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    href: "/pacientes",
+    href: "/secretaria-pacientes",
     label: "Pacientes",
     icon: Users,
   },
@@ -56,7 +56,7 @@ export default function SecretariaLayout({
           <nav className="flex flex-col gap-2 p-4">
             {navItems.map((item) => {
               const Icon = item.icon
-              const active = pathname.startsWith(item.href)
+              const active = pathname === item.href
 
               return (
                 <Link
