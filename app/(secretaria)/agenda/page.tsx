@@ -1,208 +1,413 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import {
-  Calendar,
-  User,
-  CheckCircle,
-  X
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Clock3,
+  Plus,
+  Search,
+  UserCheck,
+  X,
 } from "lucide-react"
 
-interface Doctor {
+import {TurnoModal} from "@/components/turno-modal"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+type Turno = {
+  id: string
+
+  fecha: string
+  estado:
+    | "PENDIENTE"
+    | "CONFIRMADO"
+    | "EN_SALA"
+    | "ATENDIDO"
+    | "CANCELADO"
+
+  paciente: {
+    nombre: string
+    apellido: string
+    dni: string
+  }
+
+  medico: {
   id: string
   nombre: string
+  apellido: string
+}
 }
 
-type EstadoTurno = "PENDIENTE" | "EN_SALA" | "ATENDIDO"
+export default function AgendaSecretariaPage() {
+  const searchParams = useSearchParams()
 
-interface Turno {
-  id: string
-  paciente: string
-  hora: string
-  estado: EstadoTurno
-}
-
-export default function SecretariaAgendaPage() {
-  const [doctores, setDoctores] = useState<Doctor[]>([])
-  const [doctorId, setDoctorId] = useState<string>("")
   const [turnos, setTurnos] = useState<Turno[]>([])
-  const [selectedTurno, setSelectedTurno] = useState<Turno | null>(null)
-  const [coseguro, setCoseguro] = useState("")
+  const [loading, setLoading] = useState(true)
 
-  // 🔥 MOCK médicos (después API real)
+  const [search, setSearch] = useState("")
+  const [medico, setMedico] = useState("todos")
+
+  const [fecha, setFecha] = useState(new Date())
+
+  const [openModal, setOpenModal] = useState(false)
+
+  // ─────────────────────────────────────────────
+  // Abrir modal automático ?nuevo=1
+  // ─────────────────────────────────────────────
   useEffect(() => {
-    setDoctores([
-      { id: "1", nombre: "Dr. Pérez" },
-      { id: "2", nombre: "Dra. Gómez" }
-    ])
-  }, [])
+    if (searchParams.get("nuevo") === "1") {
+      setOpenModal(true)
+    }
+  }, [searchParams])
 
-  // 🔥 MOCK turnos (después API real)
+  // ─────────────────────────────────────────────
+  // Fetch turnos
+  // ─────────────────────────────────────────────
   useEffect(() => {
-    if (!doctorId) return
+    const fechaISO = fecha.toISOString().split("T")[0]
 
-    setTurnos([
-      { id: "t1", paciente: "Juan Pérez", hora: "09:00", estado: "PENDIENTE" },
-      { id: "t2", paciente: "María López", hora: "09:30", estado: "PENDIENTE" }
-    ])
-  }, [doctorId])
+    setLoading(true)
 
-  // 🟢 MARCAR EN SALA (clave para SalaSheet)
-  const marcarEnSala = async (id: string) => {
-    // 🔥 después: PATCH /api/turnos/:id
-    setTurnos((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, estado: "EN_SALA" } : t
+    fetch(`/api/turnos?fecha=${fechaISO}`)
+      .then((res) => res.json())
+      .then(setTurnos)
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [fecha])
+
+  // ─────────────────────────────────────────────
+  // Médicos únicos
+  // ─────────────────────────────────────────────
+  const medicos = useMemo(() => {
+    const unique = new Map()
+
+    turnos.forEach((t) => {
+      unique.set(
+        t.medico.id,
+        `${t.medico.nombre} ${t.medico.apellido}`
       )
-    )
+    })
+
+    return Array.from(unique.entries())
+  }, [turnos])
+
+  // ─────────────────────────────────────────────
+  // Filtrado
+  // ─────────────────────────────────────────────
+  const filtered = turnos.filter((turno) => {
+    const text = search.toLowerCase()
+
+    const matchesSearch =
+      `${turno.paciente.nombre} ${turno.paciente.apellido}`
+        .toLowerCase()
+        .includes(text) ||
+      turno.paciente.dni.includes(text) ||
+      `${turno.medico.nombre} ${turno.medico.apellido}`
+        .toLowerCase()
+        .includes(text)
+
+    const matchesMedico =
+      medico === "todos" ||
+      turno.medico.id === medico
+
+    return matchesSearch && matchesMedico
+  })
+
+  // ─────────────────────────────────────────────
+  // Cambiar estado
+  // ─────────────────────────────────────────────
+  async function updateEstado(
+    turnoId: string,
+    estado: string
+  ) {
+    try {
+      await fetch(`/api/turnos/${turnoId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ estado }),
+      })
+
+      setTurnos((prev) =>
+        prev.map((t) =>
+          t.id === turnoId ? { ...t, estado: estado as any } : t
+        )
+      )
+    } catch (error) {
+      console.error(error)
+    }
   }
 
-  // ⚫ MARCAR ATENDIDO (con coseguro)
-  const marcarAtendido = async () => {
-    if (!selectedTurno) return
-
-    // 🔥 después: guardar coseguro + estado en backend
-    console.log("💰 Coseguro cobrado:", coseguro)
-
-    setTurnos((prev) =>
-      prev.map((t) =>
-        t.id === selectedTurno.id
-          ? { ...t, estado: "ATENDIDO" }
-          : t
-      )
-    )
-
-    setSelectedTurno(null)
-    setCoseguro("")
-  }
+  // ─────────────────────────────────────────────
+  // Fecha label
+  // ─────────────────────────────────────────────
+  const fechaLabel = fecha.toLocaleDateString("es-AR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  })
 
   return (
     <div className="space-y-6">
-
       {/* HEADER */}
-      <div className="glass-card p-6">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <Calendar className="w-5 h-5" />
-          Agenda de Turnos
-        </h1>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-light tracking-tight">
+            Agenda
+          </h1>
 
-        <select
-          value={doctorId}
-          onChange={(e) => setDoctorId(e.target.value)}
-          className="mt-4 px-4 py-2 rounded-xl border w-full max-w-sm"
-        >
-          <option value="">Seleccionar médico...</option>
-          {doctores.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.nombre}
-            </option>
-          ))}
-        </select>
+          <p className="text-muted-foreground capitalize">
+            {fechaLabel}
+          </p>
+        </div>
+
+        <Button onClick={() => setOpenModal(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nuevo turno
+        </Button>
       </div>
 
-      {/* TURNOS */}
-      <div className="glass-card p-6 space-y-3">
-        {turnos.length === 0 ? (
-          <p className="text-sm text-slate-400">
-            Seleccioná un médico para ver la agenda
-          </p>
+      {/* NAVEGACIÓN */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() =>
+            setFecha((prev) => {
+              const next = new Date(prev)
+              next.setDate(next.getDate() - 1)
+              return next
+            })
+          }
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={() => setFecha(new Date())}
+        >
+          Hoy
+        </Button>
+
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() =>
+            setFecha((prev) => {
+              const next = new Date(prev)
+              next.setDate(next.getDate() + 1)
+              return next
+            })
+          }
+        >
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* FILTROS */}
+      <div className="grid gap-3 lg:grid-cols-[1fr_240px]">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+
+          <Input
+            placeholder="Buscar paciente, DNI o médico..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        <Select value={medico} onValueChange={setMedico}>
+          <SelectTrigger>
+            <SelectValue placeholder="Filtrar médico" />
+          </SelectTrigger>
+
+          <SelectContent>
+            <SelectItem value="todos">
+              Todos los médicos
+            </SelectItem>
+
+            {medicos.map(([id, nombre]) => (
+              <SelectItem key={id} value={id}>
+                {nombre}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* LISTA */}
+      <div className="space-y-3">
+        {loading ? (
+          <Card>
+            <CardContent className="p-10 text-center text-muted-foreground">
+              Cargando agenda...
+            </CardContent>
+          </Card>
+        ) : filtered.length === 0 ? (
+          <Card>
+            <CardContent className="p-10 text-center text-muted-foreground">
+              No hay turnos
+            </CardContent>
+          </Card>
         ) : (
-          turnos.map((t) => (
-            <div
-              key={t.id}
-              className="flex items-center justify-between p-4 rounded-xl bg-white/60 border hover:bg-white/80 transition cursor-pointer"
-              onClick={() => setSelectedTurno(t)}
-            >
-              <div className="flex items-center gap-4">
-                <User className="w-4 h-4 text-teal-600" />
-                <div>
-                  <p className="font-semibold">{t.paciente}</p>
-                  <p className="text-xs text-slate-400">{t.hora}</p>
+          filtered.map((turno) => (
+            <Card key={turno.id}>
+              <CardContent className="p-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                {/* INFO */}
+                <div className="space-y-1">
+                  <p className="font-semibold">
+                    {turno.paciente.nombre}{" "}
+                    {turno.paciente.apellido}
+                  </p>
+
+                  <p className="text-sm text-muted-foreground">
+                    DNI: {turno.paciente.dni}
+                  </p>
+
+                  <p className="text-sm text-muted-foreground">
+                    Dr/a. {turno.medico.nombre}{" "}
+                    {turno.medico.apellido}
+                  </p>
                 </div>
-              </div>
 
-              <div>
-                {t.estado === "PENDIENTE" && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      marcarEnSala(t.id)
-                    }}
-                    className="px-3 py-1 text-xs bg-teal-500 text-white rounded-lg hover:bg-teal-600"
-                  >
-                    En sala
-                  </button>
-                )}
+                {/* ESTADO */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <EstadoBadge estado={turno.estado} />
 
-                {t.estado === "EN_SALA" && (
-                  <span className="text-xs text-amber-500 font-bold">
-                    EN SALA
-                  </span>
-                )}
+                  {turno.estado === "PENDIENTE" && (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          updateEstado(
+                            turno.id,
+                            "CONFIRMADO"
+                          )
+                        }
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        Confirmar
+                      </Button>
 
-                {t.estado === "ATENDIDO" && (
-                  <CheckCircle className="text-green-500 w-4 h-4" />
-                )}
-              </div>
-            </div>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() =>
+                          updateEstado(
+                            turno.id,
+                            "CANCELADO"
+                          )
+                        }
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        Cancelar
+                      </Button>
+                    </>
+                  )}
+
+                  {turno.estado === "CONFIRMADO" && (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          updateEstado(
+                            turno.id,
+                            "EN_SALA"
+                          )
+                        }
+                      >
+                        <Clock3 className="mr-2 h-4 w-4" />
+                        Pasar a sala
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() =>
+                          updateEstado(
+                            turno.id,
+                            "CANCELADO"
+                          )
+                        }
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        Cancelar
+                      </Button>
+                    </>
+                  )}
+
+                  {turno.estado === "EN_SALA" && (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        updateEstado(
+                          turno.id,
+                          "ATENDIDO"
+                        )
+                      }
+                    >
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Marcar atendido
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>
 
       {/* MODAL */}
-      {selectedTurno && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <TurnoModal
+        open={openModal}
+        onOpenChange={setOpenModal}
+      />
+    </div>
+  )
+}
 
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
+function EstadoBadge({
+  estado,
+}: {
+  estado: Turno["estado"]
+}) {
+  const styles = {
+    PENDIENTE:
+      "bg-slate-100 text-slate-700 border-slate-200",
 
-            {/* HEADER */}
-            <div className="flex justify-between items-center">
-              <h2 className="font-bold text-lg">Turno</h2>
-              <button onClick={() => setSelectedTurno(null)}>
-                <X />
-              </button>
-            </div>
+    CONFIRMADO:
+      "bg-blue-100 text-blue-700 border-blue-200",
 
-            {/* INFO */}
-            <div className="space-y-2 text-sm">
-              <p><b>Paciente:</b> {selectedTurno.paciente}</p>
-              <p><b>Hora:</b> {selectedTurno.hora}</p>
-              <p><b>Estado:</b> {selectedTurno.estado}</p>
-            </div>
+    EN_SALA:
+      "bg-amber-100 text-amber-700 border-amber-200",
 
-            {/* COSEGURO */}
-            <div>
-              <label className="text-xs text-slate-500">
-                Coseguro ($)
-              </label>
-              <input
-                type="number"
-                value={coseguro}
-                onChange={(e) => setCoseguro(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 mt-1"
-              />
-            </div>
+    ATENDIDO:
+      "bg-emerald-100 text-emerald-700 border-emerald-200",
 
-            {/* ACTIONS */}
-            <div className="flex justify-between gap-2 pt-2">
-              <button
-                onClick={() => setSelectedTurno(null)}
-                className="px-4 py-2 rounded-lg bg-slate-100"
-              >
-                Cancelar
-              </button>
+    CANCELADO:
+      "bg-rose-100 text-rose-700 border-rose-200",
+  }
 
-              <button
-                onClick={marcarAtendido}
-                className="px-4 py-2 rounded-lg bg-teal-500 text-white hover:bg-teal-600"
-              >
-                Finalizar + cobrar
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
+  return (
+    <div
+      className={`rounded-full border px-3 py-1 text-xs font-semibold ${styles[estado]}`}
+    >
+      {estado.replace("_", " ")}
     </div>
   )
 }

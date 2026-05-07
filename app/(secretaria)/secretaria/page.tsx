@@ -1,218 +1,249 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
+  CalendarDays,
   Users,
-  Calendar,
+  Timer,
+  Plus,
+  ClipboardList,
+  CheckCircle2,
   Clock,
-  Search
+  XCircle,
 } from "lucide-react"
 
-interface Turno {
-  id: string
-  pacienteNombre: string
-  medicoNombre: string
-  hora: string
-  estado: "PENDIENTE" | "EN_SALA" | "EN_ATENCION" | "FINALIZADO"
+import { Card, CardContent } from "@/components/ui/card"
+import {SalaSheet} from "@/components/sala-sheet"
+
+// ─── Tipos ────────────────────────────────────────────────
+type ResumenDia = {
+  pendientes: number
+  enSala: number
+  atendidos: number
+  cancelados: number
 }
 
-export default function SecretariaDashboard() {
-  const [turnos, setTurnos] = useState<Turno[]>([])
-  const [search, setSearch] = useState("")
+// ─── Componente principal ─────────────────────────────────
+export default function SecretariaDashboardPage() {
+  const router = useRouter()
+
+  const [isSalaOpen, setIsSalaOpen] = useState(false)
+
+  const [resumen, setResumen] = useState<ResumenDia>({
+    pendientes: 0,
+    enSala: 0,
+    atendidos: 0,
+    cancelados: 0,
+  })
+
+  const [loading, setLoading] = useState(true)
+
+  // Fecha de hoy formateada
+  const hoy = new Date()
+
+  const fechaLabel = hoy.toLocaleDateString("es-AR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  })
 
   useEffect(() => {
-    const fetchTurnos = async () => {
-      try {
-        const res = await fetch("/api/turnos/hoy")
-        const data = await res.json()
-        setTurnos(data || [])
-      } catch (err) {
-        console.error(err)
-      }
-    }
+    const fechaISO = hoy.toISOString().split("T")[0]
 
-    fetchTurnos()
+    fetch(`/api/turnos?fecha=${fechaISO}`)
+      .then((res) => res.json())
+      .then((turnos: { estado: string }[]) => {
+        setResumen({
+          pendientes: turnos.filter(
+            (t) =>
+              t.estado === "PENDIENTE" ||
+              t.estado === "CONFIRMADO"
+          ).length,
+
+          enSala: turnos.filter(
+            (t) => t.estado === "EN_SALA"
+          ).length,
+
+          atendidos: turnos.filter(
+            (t) => t.estado === "ATENDIDO"
+          ).length,
+
+          cancelados: turnos.filter(
+            (t) => t.estado === "CANCELADO"
+          ).length,
+        })
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
   }, [])
 
-  const now = new Date()
-
-  const getEstadoVisual = (turno: Turno) => {
-    if (turno.estado === "EN_SALA") return "🟢 En sala"
-    if (turno.estado === "FINALIZADO") return "⚫ Atendido"
-
-    const [h, m] = turno.hora.split(":").map(Number)
-    const turnoDate = new Date()
-    turnoDate.setHours(h, m, 0)
-
-    const diff = (turnoDate.getTime() - now.getTime()) / 60000
-
-    if (diff <= 60 && diff > 0) return "🟠 Turno pronto"
-    if (diff <= 0) return "🔴 Atrasado"
-
-    return "🔵 Turno hoy"
-  }
-
-  const filtered = turnos.filter((t) =>
-    t.pacienteNombre.toLowerCase().includes(search.toLowerCase())
-  )
-
-  const enSala = turnos.filter((t) => t.estado === "EN_SALA")
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
+      {/* ── HEADER ─────────────────────────────────────── */}
+      <div className="space-y-1">
+        <h1 className="text-4xl font-light tracking-tight text-slate-800">
+          Panel de{" "}
+          <span className="font-semibold">
+            Secretaría
+          </span>
+        </h1>
 
-      {/* HEADER */}
-      <div className="glass-card p-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">
-            Dashboard Secretaría
-          </h1>
-          <p className="text-xs uppercase tracking-widest text-[#1e5e5e] font-bold opacity-70">
-            Control diario de pacientes
-          </p>
-        </div>
+        <p className="text-sm uppercase tracking-[0.3em] text-[#1e5e5e] font-bold opacity-70 capitalize">
+          {fechaLabel}
+        </p>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* ── MÓDULOS ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+        <QuickCard
+          icon={CalendarDays}
+          title="Agenda del día"
+          desc="Turnos de hoy"
+          onClick={() => router.push("/agenda")}
+        />
 
-        <div className="glass-card p-4 flex items-center gap-3">
-          <Users className="text-teal-500" />
-          <div>
-            <p className="text-xs text-slate-500">En sala</p>
-            <p className="text-xl font-bold">{enSala.length}</p>
-          </div>
-        </div>
+        <QuickCard
+          icon={Users}
+          title="Pacientes"
+          desc="Buscar / crear"
+          onClick={() => router.push("/pacientes")}
+        />
 
-        <div className="glass-card p-4 flex items-center gap-3">
-          <Calendar className="text-teal-500" />
-          <div>
-            <p className="text-xs text-slate-500">Turnos hoy</p>
-            <p className="text-xl font-bold">{turnos.length}</p>
-          </div>
-        </div>
+        <QuickCard
+          icon={Timer}
+          title="Sala de espera"
+          desc="Ver quién espera"
+          onClick={() => setIsSalaOpen(true)}
+        />
 
-        <div className="glass-card p-4 flex items-center gap-3">
-          <Clock className="text-teal-500" />
-          <div>
-            <p className="text-xs text-slate-500">Próximos (&lt;1h)</p>
-            <p className="text-xl font-bold">
-              {
-                turnos.filter((t) => {
-                  const [h, m] = t.hora.split(":").map(Number)
-                  const turnoDate = new Date()
-                  turnoDate.setHours(h, m, 0)
-                  const diff =
-                    (turnoDate.getTime() - now.getTime()) / 60000
-                  return diff <= 60 && diff > 0
-                }).length
-              }
-            </p>
-          </div>
-        </div>
+        <QuickCard
+          icon={Plus}
+          title="Nuevo turno"
+          desc="Registrar turno"
+          onClick={() => router.push("/agenda?nuevo=1")}
+        />
       </div>
 
-      {/* BUSCADOR */}
-      <div className="glass-card p-4">
-        <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border">
-          <Search className="w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar paciente..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full outline-none text-sm"
+      {/* ── RESUMEN DEL DÍA ────────────────────────────── */}
+      <div>
+        <h2 className="text-xs uppercase tracking-widest text-[#1e5e5e] font-bold opacity-60 mb-4">
+          Resumen del día
+        </h2>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            label="Pendientes"
+            value={resumen.pendientes}
+            icon={ClipboardList}
+            color="text-slate-700"
+            loading={loading}
+          />
+
+          <StatCard
+            label="En sala"
+            value={resumen.enSala}
+            icon={Clock}
+            color="text-[#39B5B5]"
+            loading={loading}
+          />
+
+          <StatCard
+            label="Atendidos"
+            value={resumen.atendidos}
+            icon={CheckCircle2}
+            color="text-emerald-500"
+            loading={loading}
+          />
+
+          <StatCard
+            label="Cancelados"
+            value={resumen.cancelados}
+            icon={XCircle}
+            color="text-rose-400"
+            loading={loading}
           />
         </div>
       </div>
 
-      {/* PACIENTES EN SALA */}
-      <div className="glass-card p-4">
-        <h2 className="font-bold mb-3 text-slate-700">
-          Pacientes en sala
-        </h2>
+      {/* ── SALA SHEET ─────────────────────────────────── */}
+      <SalaSheet
+        open={isSalaOpen}
+        onClose={() => setIsSalaOpen(false)}
+      />
+    </div>
+  )
+}
 
-        {enSala.length === 0 ? (
-          <p className="text-sm text-slate-400">
-            No hay pacientes en sala
+// ─── QuickCard ────────────────────────────────────────────
+function QuickCard({
+  icon: Icon,
+  title,
+  desc,
+  onClick,
+}: {
+  icon: React.ElementType
+  title: string
+  desc: string
+  onClick: () => void
+}) {
+  return (
+    <div
+      onClick={onClick}
+      className="group cursor-pointer rounded-[2rem] border border-white/40 bg-primary/80 backdrop-blur-md p-5 shadow-[0_4px_20px_0_rgba(0,0,0,0.03)] hover:bg-[#39B5B5] hover:shadow-[#39B5B5]/30 hover:shadow-2xl transition-all duration-500 hover:-translate-y-1"
+    >
+      <div className="flex flex-col gap-4">
+        <div className="w-10 h-10 rounded-2xl bg-white/50 flex items-center justify-center shadow-sm group-hover:bg-white transition-colors duration-500">
+          <Icon className="w-5 h-5 text-[#39B5B5]" />
+        </div>
+
+        <div>
+          <p className="font-bold text-white/60 group-hover:text-white transition-colors duration-500">
+            {title}
           </p>
-        ) : (
-          <div className="space-y-2">
-            {enSala.map((t) => (
-              <div
-                key={t.id}
-                className="p-3 rounded-xl bg-teal-50 flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-semibold text-sm">
-                    {t.pacienteNombre}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {t.medicoNombre} • {t.hora}
-                  </p>
-                </div>
 
-                <span className="text-xs font-bold text-teal-600">
-                  EN SALA
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* TURNOS DEL DÍA */}
-      <div className="glass-card p-4">
-        <h2 className="font-bold mb-3 text-slate-700">
-          Turnos del día
-        </h2>
-
-        <div className="space-y-2">
-          {filtered.map((t) => (
-            <div
-              key={t.id}
-              className="p-3 rounded-xl bg-white border flex justify-between items-center hover:bg-slate-50"
-            >
-              <div>
-                <p className="font-semibold text-sm">
-                  {t.pacienteNombre}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {t.medicoNombre} • {t.hora}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-
-                <span className="text-xs font-medium">
-                  {getEstadoVisual(t)}
-                </span>
-
-                {t.estado === "PENDIENTE" && (
-                  <button
-                    onClick={async () => {
-                      await fetch(`/api/turnos/${t.id}`, {
-                        method: "PATCH",
-                        body: JSON.stringify({ estado: "EN_SALA" })
-                      })
-
-                      setTurnos((prev) =>
-                        prev.map((x) =>
-                          x.id === t.id ? { ...x, estado: "EN_SALA" } : x
-                        )
-                      )
-                    }}
-                    className="text-xs px-2 py-1 rounded-lg bg-teal-500 text-white font-bold hover:bg-teal-600"
-                  >
-                    En sala
-                  </button>
-                )}
-
-              </div>
-            </div>
-          ))}
+          <p className="text-[11px] text-white/40 group-hover:text-white transition-colors duration-500">
+            {desc}
+          </p>
         </div>
       </div>
     </div>
+  )
+}
+
+// ─── StatCard ─────────────────────────────────────────────
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  color,
+  loading,
+}: {
+  label: string
+  value: number
+  icon: React.ElementType
+  color: string
+  loading: boolean
+}) {
+  return (
+    <Card>
+      <CardContent className="p-6 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Icon className={`w-4 h-4 ${color}`} />
+
+          <p className="text-xs uppercase tracking-widest text-[#1e5e5e] font-bold opacity-70">
+            {label}
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="h-10 w-12 bg-slate-100 animate-pulse rounded-lg" />
+        ) : (
+          <p className={`text-5xl font-light ${color}`}>
+            {String(value).padStart(2, "0")}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   )
 }

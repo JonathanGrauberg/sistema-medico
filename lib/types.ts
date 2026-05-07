@@ -2,13 +2,24 @@ export type FileType = "ESTUDIO" | "INFORME"
 
 export interface User {
   id: string
+
   nombre: string
   apellido: string
   dni: string
-  username: string
-  password: string
+
+  telefono?: string
+  email?: string
+
+  localidad?: string
+  obraSocial?: string
+  observaciones?: string
+
+  username?: string
+  password?: string
+
   createdAt: Date
   updatedAt: Date
+
   files?: FileRecord[]
 }
 

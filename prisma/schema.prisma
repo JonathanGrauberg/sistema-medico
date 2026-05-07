@@ -52,14 +52,20 @@ model User {
 
 model Paciente {
   id        String   @id @default(cuid())
+
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   nombre    String
   apellido  String
   dni       String
+
   telefono  String?
   email     String?
+
+  localidad     String?
+  obraSocial    String?
+  observaciones String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -69,7 +75,7 @@ model Paciente {
   turnos    Turno[]
   credenciales Credencial[]
 
-  @@unique([tenantId, dni]) // 🔥 DNI único por clínica
+  @@unique([tenantId, dni])
   @@index([nombre, apellido])
 }
 

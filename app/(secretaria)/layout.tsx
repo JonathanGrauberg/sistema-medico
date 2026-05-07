@@ -2,113 +2,85 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
 import {
+  CalendarDays,
   LayoutDashboard,
   Users,
-  Calendar,
-  Activity,
-  LogOut
 } from "lucide-react"
 
-import { SalaSheet } from "@/components/sala-sheet"
-
-const menu = [
+const navItems = [
   {
-    label: "Dashboard",
-    href: "/secretaria",
-    icon: LayoutDashboard
-  },
-  {
-    label: "Pacientes",
-    href: "secretaria/pacientes",
-    icon: Users
-  },
-  {
+    href: "/agenda",
     label: "Agenda",
-    href: "secretaria/agenda",
-    icon: Calendar
+    icon: CalendarDays,
   },
   {
-    label: "Sala de espera",
-    href: "#",
-    icon: Activity,
-    isModal: true
-  }
+    href: "/secretaria",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    href: "/pacientes",
+    label: "Pacientes",
+    icon: Users,
+  },
 ]
 
 export default function SecretariaLayout({
-  children
+  children,
 }: {
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const [openSala, setOpenSala] = useState(false)
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/30">
+      {/* HEADER */}
+      <header className="border-b bg-background">
+        <div className="mx-auto flex h-16 items-center justify-between px-6">
+          <div>
+            <h1 className="text-lg font-semibold">
+              Panel Secretaría
+            </h1>
 
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r flex flex-col">
-
-        <div className="h-16 flex items-center px-6 border-b">
-          <h1 className="font-bold text-lg text-[#1e5e5e]">
-            Secretaría
-          </h1>
+            <p className="text-sm text-muted-foreground">
+              Gestión diaria de turnos y pacientes
+            </p>
+          </div>
         </div>
+      </header>
 
-        <nav className="flex-1 p-3 space-y-1">
-          {menu.map((item) => {
-            const Icon = item.icon
-            const active = pathname === item.href
+      <div className="flex">
+        {/* SIDEBAR */}
+        <aside className="hidden w-64 border-r bg-background md:block">
+          <nav className="flex flex-col gap-2 p-4">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const active = pathname.startsWith(item.href)
 
-            if ((item as any).isModal) {
               return (
-                <div
-                  key={item.label}
-                  onClick={() => setOpenSala(true)}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm cursor-pointer text-slate-600 hover:bg-slate-100"
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </div>
-              )
-            }
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all
-                  ${
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                     active
-                      ? "bg-[#39B5B5] text-white font-semibold"
-                      : "text-slate-600 hover:bg-slate-100"
-                  }
-                `}
-              >
-                <Icon className="w-4 h-4" />
-                {item.label}
-              </Link>
-            )
-          })}
-        </nav>
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
+        </aside>
 
-        <div className="p-3 border-t">
-          <button className="flex items-center gap-2 text-sm text-slate-500 hover:text-red-500">
-            <LogOut className="w-4 h-4" />
-            Cerrar sesión
-          </button>
-        </div>
-      </aside>
-
-      {/* MAIN */}
-      <main className="flex-1 overflow-auto p-6">
-        {children}
-      </main>
-
-      {/* 🔥 MODAL SALA */}
-      <SalaSheet open={openSala} onClose={() => setOpenSala(false)} />
+        {/* CONTENT */}
+        <main className="flex-1 p-6">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }
