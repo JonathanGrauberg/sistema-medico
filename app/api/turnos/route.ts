@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 
 const prisma = new PrismaClient()
 
-const TENANT_ID = "cmng4trt70000v5346vbu6qhl"
+const TENANT_ID = "cmpb7gd8i0000v5ecuey4300e"
 
 // ─────────────────────────────────────────────
 // CREAR TURNO
@@ -12,23 +12,46 @@ export async function POST(req: Request) {
   try {
     const body = await req.json()
 
+    console.log("BODY:", body)
+
+const paciente = await prisma.paciente.findUnique({
+  where: {
+    id: body.pacienteId,
+  },
+})
+
+console.log("PACIENTE:", paciente)
+
     const turno = await prisma.turno.create({
-      data: {
-        tenantId: TENANT_ID,
+  data: {
+    tenantId: TENANT_ID,
 
-        pacienteId: body.pacienteId,
-        medicoId: body.medicoId,
+    pacienteId: body.pacienteId,
+    medicoId: body.medicoId,
 
-        fecha: new Date(body.fecha),
+    fecha: new Date(body.fecha),
 
-        estado: "PENDIENTE",
-      },
+    estado: "PENDIENTE",
 
-      include: {
-        paciente: true,
-        medico: true,
-      },
-    })
+    practica: body.practica,
+    motivo: body.motivo,
+
+    observaciones: body.observaciones,
+
+    duracionMin: body.duracionMin || 30,
+
+    obraSocial: body.obraSocial,
+
+    coseguro: body.coseguro
+      ? Number(body.coseguro)
+      : null,
+  },
+
+  include: {
+    paciente: true,
+    medico: true,
+  },
+})
 
     return NextResponse.json(turno)
   } catch (error) {
@@ -80,19 +103,21 @@ export async function GET(req: Request) {
         {
           fecha: "asc",
         },
-        {
-          ordenLlegada: "asc",
-        },
       ],
     })
 
     return NextResponse.json(turnos)
-  } catch (error) {
-    console.error(error)
+  } catch (error: any) {
 
-    return NextResponse.json(
-      { error: "Error al obtener turnos" },
-      { status: 500 }
-    )
-  }
+  console.error("ERROR TURNO:", error)
+
+  return NextResponse.json(
+    {
+      error: error.message || "Error al crear turno",
+    },
+    {
+      status: 500,
+    }
+  )
+}
 }

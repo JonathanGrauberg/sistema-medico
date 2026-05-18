@@ -76,7 +76,9 @@ export default function AgendaSecretariaPage() {
   // Fetch turnos
   // ─────────────────────────────────────────────
   useEffect(() => {
-    const fechaISO = fecha.toISOString().split("T")[0]
+
+    const fechaISO =
+      fecha.toLocaleDateString("sv-SE")
 
     setLoading(true)
 
@@ -85,6 +87,7 @@ export default function AgendaSecretariaPage() {
       .then(setTurnos)
       .catch(console.error)
       .finally(() => setLoading(false))
+
   }, [fecha])
 
   // ─────────────────────────────────────────────
@@ -376,6 +379,7 @@ export default function AgendaSecretariaPage() {
       <TurnoModal
         open={openModal}
         onOpenChange={setOpenModal}
+        fecha={fecha}
       />
     </div>
   )
